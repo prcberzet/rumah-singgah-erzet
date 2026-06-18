@@ -35,7 +35,6 @@
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Monitoring Rumah Singgah</p>
             </div>
             
-            <!-- Penambahan action="javascript:void(0);" sangat penting untuk Safari Mobile -->
             <form id="login-form" class="space-y-5" action="javascript:void(0);" onsubmit="return handleLogin(event)">
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Username</label>
@@ -85,7 +84,7 @@
 
         <!-- Branch Navigation / Info Lokasi -->
         <div class="mb-6" id="branch-nav-container">
-            <!-- Isi akan diatur JS (Tabs untuk Pusat, Alamat statis untuk Cabang) -->
+            <!-- Isi akan diatur JS -->
         </div>
 
         <!-- Controls (Terisi & Riwayat) -->
@@ -481,31 +480,157 @@
 
     <!-- CORE SCRIPT -->
     <script>
+        // =========================================================
+        // KONFIGURASI DATABASE REALTIME (FIREBASE)
+        // =========================================================
+        // WAJIB DIISI JIKA DI-HOSTING DI GITHUB: 
+        // 1. Pergi ke console.firebase.google.com, buat Project Gratis.
+        // 2. Klik ikon Web (</>), buat Web App, lalu copy config-nya ke bawah ini:
+        // 3. Masuk ke menu "Build > Authentication", aktifkan "Anonymous".
+        // 4. Masuk ke menu "Build > Firestore Database", buat database dalam mode "Test Mode".
+        const GITHUB_FIREBASE_CONFIG = {
+            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYjvkIYyNso",
+            authDomain: "database-rumsing-erzet.firebaseapp.com",
+            projectId: "database-rumsing-erzet",
+            storageBucket: "database-rumsing-erzet.firebasestorage.app",
+            messagingSenderId: "181345777217",
+            appId: "1:181345777217:web:f0c2a733922aab5e01b8c0",
+            measurementId: "G-TKM3H0BLND"
+        };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
+            ? JSON.parse(__firebase_config) 
+            : GITHUB_FIREBASE_CONFIG;
+
+        let isCloudSyncActive = false;
+        let db, auth, firestoreApi;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
+
+        // STATE APLIKASI AWAL
         const DEFAULT_BRANCHES = ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
-        let savedBranches = JSON.parse(localStorage.getItem('rskd_branches')) || DEFAULT_BRANCHES;
-        let allBranchData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')) || {};
-        let adminCreds = JSON.parse(localStorage.getItem('rskd_admin_creds')) || { username: 'admin', password: 'admin' };
+        let savedBranches = [...DEFAULT_BRANCHES];
+        let allBranchData = {};
+        let adminCreds = { username: 'admin', password: 'admin' };
         
+        // Coba baca sesi auth dari browser (ini aman karena sifatnya per-sesi/sementara)
         let currentUser = null;
         try {
             currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null;
         } catch(e) {
-            console.warn("Sesi mungkin diblokir oleh mode privat Safari");
+            console.warn("Sesi diblokir mode privat");
         }
         
-        let currentBranch = localStorage.getItem('rskd_active_branch') || (savedBranches.length > 0 ? savedBranches[0] : "");
-        
+        let currentBranch = savedBranches[0] || "";
         let selectedRoomId = null;
         let currentPhotoBase64 = null;
         let currentBranchPhotoBase64 = null;
 
-        // MASUKKAN URL GOOGLE APPS SCRIPT ANDA DI BAWAH INI
+        // MASUKKAN URL GOOGLE APPS SCRIPT ANDA
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBiwfg7G-kFzhrWQZnz0ld244GqiY3DDdBYAna-YevxvNTxCRLWqPofkfQ4AA9l8fY7A/exec';
 
-        // Inisialisasi Data Cabang Default
+        // Terapkan Memory Awal
         savedBranches.forEach(branch => {
             if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
         });
+
+        // INIT FIREBASE
+        if (firebaseConfig.apiKey) {
+            Promise.all([
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
+            ]).then(async ([appModule, authModule, firestoreModule]) => {
+                const app = appModule.initializeApp(firebaseConfig);
+                auth = authModule.getAuth(app);
+                db = firestoreModule.getFirestore(app);
+                firestoreApi = firestoreModule;
+
+                try {
+                    // Cek ketersediaan token bawaan (Canvas) sebelum jatuh ke Anonymous Auth
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await authModule.signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        await authModule.signInAnonymously(auth);
+                    }
+
+                    isCloudSyncActive = true;
+                    
+                    // Menampilkan indikator sinkronisasi jika berhasil
+                    const syncIndicator = document.createElement('div');
+                    syncIndicator.innerHTML = '<i class="fa-solid fa-cloud text-emerald-500"></i> <span class="text-[10px] font-bold text-slate-600 tracking-widest uppercase">Live Sync</span>';
+                    syncIndicator.className = 'fixed bottom-4 left-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow border border-slate-200 flex items-center gap-2 z-50 pointer-events-none';
+                    document.body.appendChild(syncIndicator);
+
+                    listenToCloud();
+                } catch (e) {
+                    console.error("Firebase Auth Error:", e);
+                }
+            });
+        } else {
+            console.warn("Firebase tidak dikonfigurasi. Aplikasi berjalan murni secara offline (sementara).");
+        }
+
+        // =========================================================
+        // SINKRONISASI CLOUD LOGIC
+        // =========================================================
+        function listenToCloud() {
+            if (!auth.currentUser || !firestoreApi) return;
+            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
+            
+            firestoreApi.onSnapshot(docRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    if (data.payload) {
+                        const parsed = JSON.parse(data.payload);
+                        savedBranches = parsed.branches || savedBranches;
+                        allBranchData = parsed.branchData || allBranchData;
+                        adminCreds = parsed.adminCreds || adminCreds;
+                        
+                        // Perbarui tampilan secara realtime (SPA)
+                        if (checkAuth()) {
+                            // Mencegah reset pilihan cabang saat update masuk dari luar
+                            if (!savedBranches.includes(currentBranch)) currentBranch = savedBranches[0] || "";
+                            renderBranchNav();
+                            renderRooms();
+                        }
+                    }
+                } else {
+                    saveDataToCloud(); // Jika database kosong, unggah data awal
+                }
+            }, (error) => console.error("Cloud sync listen error:", error));
+        }
+
+        function saveDataToCloud() {
+            if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
+            
+            // Hapus foto berukuran besar (Mencegah Database Overload 1MB)
+            const strippedBranchData = JSON.parse(JSON.stringify(allBranchData));
+            for (const branch in strippedBranchData) {
+                strippedBranchData[branch].rooms.forEach(room => {
+                    if (room.foto && room.foto.length > 50000) room.foto = null; 
+                });
+                if (strippedBranchData[branch].info.foto && strippedBranchData[branch].info.foto.length > 50000) {
+                    strippedBranchData[branch].info.foto = null;
+                }
+            }
+
+            const payload = JSON.stringify({
+                branches: savedBranches,
+                branchData: strippedBranchData,
+                adminCreds: adminCreds
+            });
+
+            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
+            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => console.error("Cloud save error:", e));
+        }
+
+        function saveData() {
+            // Update UI
+            renderBranchNav();
+            renderRooms();
+            // Simpan ke Cloud
+            saveDataToCloud();
+        }
 
         // =========================================================
         // LOGIKA OTENTIKASI (UPDATE KHUSUS SAFARI/MOBILE)
@@ -515,7 +640,7 @@
             const rawUser = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value;
 
-            // Admin cek, allow huruf besar/kecil di HP
+            // Admin cek
             if (rawUser.toLowerCase() === adminCreds.username.toLowerCase() && pass === adminCreds.password) {
                 currentUser = { role: 'admin', name: 'Super Admin Pusat' };
             } else {
@@ -525,7 +650,6 @@
                     let branchUser = info.username || branch.toLowerCase().replace(/\s/g, '');
                     let branchPass = info.password || '123';
                     
-                    // Allow username case-insensitive karena keyboard HP sering otomatis huruf besar
                     if (rawUser.toLowerCase() === branchUser.toLowerCase() && pass === branchPass) {
                         matchedBranch = branch;
                         break;
@@ -541,28 +665,20 @@
                 }
             }
 
-            try {
-                sessionStorage.setItem('rskd_user', JSON.stringify(currentUser));
-            } catch (error) {
-                console.warn('Mode privat diaktifkan, sesi login sementara digunakan.');
-            }
+            try { sessionStorage.setItem('rskd_user', JSON.stringify(currentUser)); } catch (e) {}
             
-            // SPA Transition (Tidak perlu reload halaman untuk masuk)
-            document.getElementById('login-form').reset(); // Bersihkan form
+            document.getElementById('login-form').reset();
             if (checkAuth()) {
                 renderBranchNav();
                 renderRooms();
             }
-            
             return false;
         }
 
         function logout() {
-            try {
-                sessionStorage.removeItem('rskd_user');
-            } catch(e) {}
+            try { sessionStorage.removeItem('rskd_user'); } catch(e) {}
             currentUser = null;
-            checkAuth(); // SPA Transition kembali ke form login
+            checkAuth();
         }
 
         function checkAuth() {
@@ -587,29 +703,18 @@
                     <span class="text-xs font-bold text-slate-500">${currentUser.name}</span>
                 `;
                 
-                // Jika user cabang hapus tombol delete history dan sembunyikan kolom Aksi
                 document.getElementById('btn-clear-history').classList.add('hidden');
                 document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+                
+                // Kunci cabang agar tak bisa lihat cabang lain
+                currentBranch = currentUser.branch; 
             }
             
-            // Keamanan tambahan
             if (currentUser.role === 'admin' && savedBranches.length > 0 && !savedBranches.includes(currentBranch)) {
                 currentBranch = savedBranches[0];
             }
             return true;
         }
-
-        // Auto-refresh jika ada tab lain yang menyimpan data baru (SINKRONISASI LIVE)
-        window.addEventListener('storage', (e) => {
-            if (e.key === 'rskd_multi_branch_data' || e.key === 'rskd_branches') {
-                savedBranches = JSON.parse(localStorage.getItem('rskd_branches')) || [];
-                allBranchData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')) || {};
-                if(checkAuth()) {
-                    renderBranchNav();
-                    renderRooms();
-                }
-            }
-        });
 
         // =========================================================
         // CORE FUNCTIONS
@@ -628,27 +733,14 @@
         }
 
         function createEmptyRoom(id) {
-            return {
-                id: id,
-                no: `Kamar ${id < 10 ? '0' + id : id}`,
-                penghuni: null,
-                foto: null, nik: "", asal: "", tglMasuk: "", diagnosa: "", dokter: "", telp: "", rs: ""
-            };
-        }
-
-        function saveData() {
-            localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
-            localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
-            localStorage.setItem('rskd_active_branch', currentBranch);
-            renderBranchNav();
-            renderRooms();
+            return { id: id, no: `Kamar ${id < 10 ? '0' + id : id}`, penghuni: null, foto: null, nik: "", asal: "", tglMasuk: "", diagnosa: "", dokter: "", telp: "", rs: "" };
         }
 
         function renderBranchNav() {
             const container = document.getElementById('branch-nav-container');
             container.innerHTML = '';
             
-            if (currentUser.role === 'admin') {
+            if (currentUser && currentUser.role === 'admin') {
                 const nav = document.createElement('div');
                 nav.className = 'flex overflow-x-auto pb-2 gap-2 items-center';
                 
@@ -661,7 +753,8 @@
                     btn.onclick = () => { 
                         currentBranch = branch; 
                         document.getElementById('active-branch-label').innerText = branch; 
-                        saveData(); 
+                        renderBranchNav();
+                        renderRooms(); 
                     };
                     btn.className = `whitespace-nowrap pl-5 pr-2 py-3 font-black text-xs outline-none ${isActive ? 'text-white' : 'text-slate-500'}`;
                     btn.innerText = branch;
@@ -670,7 +763,6 @@
                     delBtn.onclick = (e) => { e.stopPropagation(); deleteBranch(branch); };
                     delBtn.className = `px-4 py-3 text-xs transition-colors rounded-r-2xl outline-none ${isActive ? 'text-orange-200 hover:text-white hover:bg-orange-700' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`;
                     delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
-                    delBtn.title = `Hapus Lokasi ${branch}`;
 
                     btnContainer.appendChild(btn);
                     btnContainer.appendChild(delBtn);
@@ -682,7 +774,6 @@
                 addBtn.className = `whitespace-nowrap px-5 py-3 rounded-2xl font-black text-xs transition border-2 border-dashed border-slate-300 text-slate-500 bg-white hover:bg-slate-50 hover:border-orange-500 hover:text-orange-600 flex items-center gap-2 ml-2`;
                 addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Tambah Lokasi';
                 
-                // Tambah Kamar di Admin diletakkan di navigasi agar rapi
                 const addRoomBtn = document.createElement('button');
                 addRoomBtn.onclick = () => { addRoom(); };
                 addRoomBtn.className = `whitespace-nowrap px-4 py-3 rounded-2xl font-black text-xs transition border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-2 ml-auto shadow-sm`;
@@ -696,9 +787,8 @@
                 else document.getElementById('active-branch-label').innerText = "-";
                 
             } else {
-                // TAMPILAN CABANG (Banner Alamat & Tombol Tambah Kamar)
                 const branchInfo = allBranchData[currentBranch]?.info || {};
-                const alamatStr = branchInfo.alamat || "Alamat belum ditambahkan. Hubungi Admin Pusat.";
+                const alamatStr = branchInfo.alamat || "Alamat belum ditambahkan.";
                 
                 const banner = document.createElement('div');
                 banner.className = 'flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm';
@@ -719,8 +809,8 @@
         function deleteBranch(branchName) {
             const branchInfo = allBranchData[branchName];
             const isOccupied = branchInfo.rooms.some(r => r.penghuni !== null);
-            let msg = `Anda yakin ingin menghapus lokasi cabang "${branchName}"? Semua data kamar dan riwayat pada cabang ini akan terhapus.`;
-            if (isOccupied) msg = `PERINGATAN: Masih ada kamar yang terisi di cabang "${branchName}"!\nAnda yakin ingin menghapus lokasi ini beserta datanya?`;
+            let msg = `Anda yakin ingin menghapus lokasi cabang "${branchName}"?`;
+            if (isOccupied) msg = `PERINGATAN: Masih ada kamar yang terisi di cabang "${branchName}"!`;
 
             showConfirm("Hapus Lokasi", msg, () => {
                 savedBranches = savedBranches.filter(b => b !== branchName);
@@ -733,51 +823,40 @@
         document.getElementById('add-location-form').onsubmit = (e) => {
             e.preventDefault();
             const nama = document.getElementById('loc-nama').value.trim();
-            const alamat = document.getElementById('loc-alamat').value;
-            const pj = document.getElementById('loc-pj').value;
-            const telp = document.getElementById('loc-telp').value;
-            const kamar = document.getElementById('loc-kamar').value;
-            const awal = document.getElementById('loc-awal').value;
-            const akhir = document.getElementById('loc-akhir').value;
-            
-            const username = document.getElementById('loc-username').value.trim();
-            const password = document.getElementById('loc-password').value;
-
             const errBox = document.getElementById('add-loc-error');
+            
             if (savedBranches.includes(nama)) {
                 errBox.innerText = `Cabang dengan nama "${nama}" sudah ada!`;
                 errBox.classList.remove('hidden');
                 return;
             }
-
             errBox.classList.add('hidden');
-            savedBranches.push(nama);
-            initBranchData(nama, kamar, alamat, pj, telp, awal, akhir, username, password);
-            currentBranch = nama;
             
+            savedBranches.push(nama);
+            initBranchData(
+                nama, document.getElementById('loc-kamar').value, document.getElementById('loc-alamat').value,
+                document.getElementById('loc-pj').value, document.getElementById('loc-telp').value,
+                document.getElementById('loc-awal').value, document.getElementById('loc-akhir').value,
+                document.getElementById('loc-username').value.trim(), document.getElementById('loc-password').value
+            );
+            
+            currentBranch = nama;
             document.getElementById('add-location-form').reset();
             closeModal('add-location-modal');
             saveData();
         };
 
         function addRoom() {
-            if(!currentBranch || !allBranchData[currentBranch]) {
-                showConfirm("Gagal", "Silakan tambah atau pilih lokasi cabang terlebih dahulu.", null, true);
-                return;
-            }
+            if(!currentBranch || !allBranchData[currentBranch]) return showConfirm("Gagal", "Pilih lokasi cabang dulu.", null, true);
             const branch = allBranchData[currentBranch];
-            const newId = branch.nextRoomId++;
-            branch.rooms.push(createEmptyRoom(newId));
+            branch.rooms.push(createEmptyRoom(branch.nextRoomId++));
             saveData();
         }
 
         function deleteRoom(roomId) {
             const room = allBranchData[currentBranch].rooms.find(r => r.id === roomId);
-            if(room.penghuni) {
-                showConfirm("Gagal Menghapus", "Kamar ini masih ada penghuninya. Lakukan check-out terlebih dahulu.", null, true);
-                return;
-            }
-            showConfirm("Hapus Kamar", `Anda yakin ingin menghapus ${room.no}?`, () => {
+            if(room.penghuni) return showConfirm("Gagal", "Kamar ini masih terisi.", null, true);
+            showConfirm("Hapus Kamar", `Hapus ${room.no}?`, () => {
                 allBranchData[currentBranch].rooms = allBranchData[currentBranch].rooms.filter(r => r.id !== roomId);
                 saveData();
             });
@@ -788,7 +867,7 @@
             grid.innerHTML = '';
             
             if(!currentBranch || !allBranchData[currentBranch] || !allBranchData[currentBranch].rooms) {
-                grid.innerHTML = '<div class="col-span-full py-16 flex flex-col items-center justify-center text-slate-400 font-medium bg-white rounded-3xl border border-dashed border-slate-300"><i class="fa-solid fa-building-circle-xmark text-4xl mb-3 text-slate-200"></i><p>Belum ada lokasi cabang aktif.</p><p class="text-xs mt-1">Silakan tambah lokasi baru melalui tombol di atas.</p></div>';
+                grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-medium">Belum ada lokasi aktif.</div>';
                 document.getElementById('total-terisi').innerText = '0';
                 document.getElementById('total-kamar').innerText = '/ 0';
                 return;
@@ -804,10 +883,9 @@
                 const card = document.createElement('div');
                 card.className = `room-card bg-white group relative`;
                 const deleteBtn = `
-                    <button onclick="event.stopPropagation(); deleteRoom(${room.id})" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur shadow-sm flex items-center justify-center text-slate-400 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100">
+                    <button onclick="event.stopPropagation(); deleteRoom(${room.id})" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100">
                         <i class="fa-solid fa-trash-can text-xs"></i>
-                    </button>
-                `;
+                    </button>`;
 
                 if (isTerisi) {
                     let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
@@ -847,7 +925,7 @@
                                 <div class="text-xs font-black text-slate-400 uppercase">${room.no}</div>
                                 <div class="text-sm font-bold text-slate-300">Kosong</div>
                             </div>
-                            <button onclick="openRegister(${room.id})" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-black hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 w-full flex justify-center items-center gap-2 mt-auto">
+                            <button onclick="openRegister(${room.id})" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-black hover:bg-orange-600 transition-colors w-full flex justify-center items-center gap-2 mt-auto">
                                 <i class="fa-solid fa-plus"></i> Isi Kamar
                             </button>
                         </div>
@@ -864,13 +942,10 @@
             if(!tglMasuk) return '-';
             const start = new Date(tglMasuk);
             const end = tglKeluar ? new Date(tglKeluar) : new Date();
-            const diffTime = Math.abs(end - start);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
             
             if (diffDays >= 30) {
-                const months = Math.floor(diffDays / 30);
-                const days = diffDays % 30;
-                return `${months} Bln ${days} Hari`;
+                return `${Math.floor(diffDays / 30)} Bln ${diffDays % 30} Hari`;
             }
             return `${diffDays} Hari`;
         }
@@ -920,7 +995,6 @@
             document.getElementById('register-modal').classList.replace('hidden', 'flex');
         }
 
-        // POST DATA KE GOOGLE SHEETS & SAVE LOCAL
         document.getElementById('register-form').onsubmit = async (e) => {
             e.preventDefault();
             const submitBtn = e.target.querySelector('button[type="submit"]');
@@ -930,8 +1004,6 @@
             submitBtn.disabled = true;
 
             const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
-            const roomNo = allBranchData[currentBranch].rooms[idx].no;
-            
             const newData = {
                 penghuni: document.getElementById('reg-nama').value,
                 nik: document.getElementById('reg-nik').value,
@@ -943,12 +1015,11 @@
                 rs: document.getElementById('reg-rs').value,
             };
 
-            // Kirim Sebagai Pendaftaran Baru (Check-in)
             if (APPS_SCRIPT_URL) {
                 try {
-                    const payload = new URLSearchParams({ type: 'checkin', cabang: currentBranch, kamar: roomNo, ...newData });
+                    const payload = new URLSearchParams({ type: 'checkin', cabang: currentBranch, kamar: allBranchData[currentBranch].rooms[idx].no, ...newData });
                     await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
-                } catch (error) { console.error('Gagal kirim ke Sheet:', error); }
+                } catch (error) {}
             }
 
             allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: currentPhotoBase64 };
@@ -963,22 +1034,15 @@
             const roomIdx = allBranchData[currentBranch].rooms.findIndex(r => r.id === id);
             const room = allBranchData[currentBranch].rooms[roomIdx];
             
-            showConfirm("Check-out Pasien", `Check-out untuk ${room.penghuni} dari ${room.no}? Data akan dipindah ke Riwayat.`, async () => {
+            showConfirm("Check-out Pasien", `Check-out untuk ${room.penghuni} dari ${room.no}?`, async () => {
                 const tglKeluar = new Date().toISOString().split('T')[0];
                 const durasi = formatDurasi(room.tglMasuk, tglKeluar);
                 
-                // Kirim Data Checkout ke Google Sheets
                 if (APPS_SCRIPT_URL) {
                     try {
-                        const payload = new URLSearchParams({
-                            type: 'checkout',
-                            cabang: currentBranch,
-                            kamar: room.no,
-                            tglKeluar: tglKeluar,
-                            durasi: durasi
-                        });
+                        const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, tglKeluar: tglKeluar, durasi: durasi });
                         fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
-                    } catch (error) { console.error('Gagal update Sheet:', error); }
+                    } catch (error) {}
                 }
 
                 allBranchData[currentBranch].history.push({ ...room, tglKeluar: tglKeluar, durasi: durasi });
@@ -989,62 +1053,26 @@
         }
 
         // =========================================================
-        // MANAJEMEN RIWAYAT
+        // MANAJEMEN RIWAYAT & LAINNYA
         // =========================================================
         function openHistory() {
             const tbody = document.getElementById('history-table-body');
             tbody.innerHTML = '';
-            
-            if(!currentBranch || !allBranchData[currentBranch]) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-slate-400 font-medium">Tidak ada data cabang yang aktif.</td></tr>`;
-                document.getElementById('history-modal').classList.replace('hidden', 'flex');
-                return;
-            }
-
-            const historyData = allBranchData[currentBranch].history || [];
-            
-            if (currentUser && currentUser.role === 'admin' && historyData.length > 0) {
-                document.getElementById('btn-clear-history').classList.remove('hidden');
-                document.querySelectorAll('.admin-only-col').forEach(el => el.classList.remove('hidden'));
-            } else {
-                document.getElementById('btn-clear-history').classList.add('hidden');
-            }
+            const historyData = allBranchData[currentBranch]?.history || [];
 
             if(historyData.length === 0) {
                 tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-slate-400 font-medium">Belum ada riwayat check-out di cabang ini.</td></tr>`;
             } else {
                 historyData.forEach((data, index) => {
                     const row = document.createElement('tr');
-                    
-                    let deleteBtnHtml = '';
-                    if (currentUser && currentUser.role === 'admin') {
-                        deleteBtnHtml = `
-                            <td class="px-6 py-4 text-center admin-only-col">
-                                <button onclick="deleteHistoryItem(${index})" class="text-slate-300 hover:text-red-600 transition-colors" title="Hapus Riwayat">
-                                    <i class="fa-solid fa-trash-can"></i>
-                                </button>
-                            </td>
-                        `;
-                    }
+                    let deleteBtnHtml = (currentUser && currentUser.role === 'admin') ? `<td class="px-6 py-4 text-center admin-only-col"><button onclick="deleteHistoryItem(${index})" class="text-slate-300 hover:text-red-600 transition-colors"><i class="fa-solid fa-trash-can"></i></button></td>` : '';
 
                     row.innerHTML = `
                         <td class="px-6 py-4"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-black">${data.no}</span></td>
-                        <td class="px-6 py-4">
-                            ${data.foto ? `<img src="${data.foto}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user"></i></div>`}
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="font-bold text-slate-800">${data.penghuni}</div>
-                            <div class="text-[10px] text-slate-400">NIK: ${data.nik || '-'}</div>
-                        </td>
-                        <td class="px-6 py-4">
-                            <div class="text-xs font-medium">${data.diagnosa || '-'}</div>
-                            <div class="text-[10px] text-orange-500 font-bold uppercase mt-0.5">${data.rs || '-'}</div>
-                        </td>
-                        <td class="px-6 py-4 text-[10px]">
-                            <div class="flex gap-2"><span class="text-slate-400 w-6">In:</span> <span class="font-medium text-slate-700">${data.tglMasuk}</span></div>
-                            <div class="flex gap-2"><span class="text-slate-400 w-6">Out:</span> <span class="font-medium text-slate-700">${data.tglKeluar}</span></div>
-                            <div class="font-black text-orange-600 mt-1">${data.durasi}</div>
-                        </td>
+                        <td class="px-6 py-4">${data.foto ? `<img src="${data.foto}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user"></i></div>`}</td>
+                        <td class="px-6 py-4"><div class="font-bold text-slate-800">${data.penghuni}</div><div class="text-[10px] text-slate-400">NIK: ${data.nik || '-'}</div></td>
+                        <td class="px-6 py-4"><div class="text-xs font-medium">${data.diagnosa || '-'}</div><div class="text-[10px] text-orange-500 font-bold uppercase mt-0.5">${data.rs || '-'}</div></td>
+                        <td class="px-6 py-4 text-[10px]"><div class="flex gap-2"><span class="text-slate-400 w-6">In:</span> <span class="font-medium text-slate-700">${data.tglMasuk}</span></div><div class="flex gap-2"><span class="text-slate-400 w-6">Out:</span> <span class="font-medium text-slate-700">${data.tglKeluar}</span></div><div class="font-black text-orange-600 mt-1">${data.durasi}</div></td>
                         ${deleteBtnHtml}
                     `;
                     tbody.appendChild(row);
@@ -1053,101 +1081,47 @@
             document.getElementById('history-modal').classList.replace('hidden', 'flex');
         }
 
-        function deleteHistoryItem(index) {
-            showConfirm("Hapus Riwayat", "Yakin ingin menghapus data pasien ini dari riwayat?", () => {
-                allBranchData[currentBranch].history.splice(index, 1);
-                saveData();
-                openHistory();
-            });
-        }
-
-        function clearHistory() {
-            showConfirm("Hapus Semua Riwayat", `PERINGATAN: Anda akan menghapus SELURUH riwayat pasien di cabang ${currentBranch}. Lanjutkan?`, () => {
-                allBranchData[currentBranch].history = [];
-                saveData();
-                openHistory();
-            });
-        }
+        function deleteHistoryItem(index) { showConfirm("Hapus", "Yakin ingin menghapus riwayat ini?", () => { allBranchData[currentBranch].history.splice(index, 1); saveData(); openHistory(); }); }
+        function clearHistory() { showConfirm("Hapus Semua", `Hapus seluruh riwayat cabang ${currentBranch}?`, () => { allBranchData[currentBranch].history = []; saveData(); openHistory(); }); }
 
         function exportHistoryExcel() {
-            if(!currentBranch || !allBranchData[currentBranch]) return;
-            const historyData = allBranchData[currentBranch].history || [];
-            if (historyData.length === 0) return showConfirm("Data Kosong", "Tidak ada riwayat untuk diekspor pada cabang ini.", null, true);
-            
+            const historyData = allBranchData[currentBranch]?.history || [];
+            if (historyData.length === 0) return showConfirm("Data Kosong", "Tidak ada riwayat.", null, true);
             let csv = "Nomor Kamar,Nama Pasien,NIK,Asal Kota,Rumah Sakit,Diagnosa,Tgl Masuk,Tgl Keluar,Durasi\n";
-            historyData.forEach(i => {
-                const cleanName = (i.penghuni||'').replace(/,/g, '');
-                const cleanDiag = (i.diagnosa||'').replace(/,/g, '');
-                const cleanRS = (i.rs||'').replace(/,/g, '');
-                const cleanAsal = (i.asal||'').replace(/,/g, '');
-                csv += `${i.no},${cleanName},'${i.nik},${cleanAsal},${cleanRS},${cleanDiag},${i.tglMasuk},${i.tglKeluar},${i.durasi}\n`;
-            });
-
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
+            historyData.forEach(i => csv += `${i.no},${(i.penghuni||'').replace(/,/g, '')},'${i.nik},${(i.asal||'').replace(/,/g, '')},${(i.rs||'').replace(/,/g, '')},${(i.diagnosa||'').replace(/,/g, '')},${i.tglMasuk},${i.tglKeluar},${i.durasi}\n`);
             const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', `Riwayat_Rumsing_${currentBranch}.csv`);
-            document.body.appendChild(a);
+            a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = `Riwayat_Rumsing_${currentBranch}.csv`;
             a.click();
-            document.body.removeChild(a);
         }
 
-        // =========================================================
-        // PROFIL CABANG, MODAL HELPERS, & TOGGLE PASSWORD
-        // =========================================================
         function showConfirm(title, message, onConfirm, isAlertOnly = false) {
             document.getElementById('confirm-title').innerText = title;
             document.getElementById('confirm-message').innerText = message;
             const btn = document.getElementById('confirm-action-btn');
-            
-            if (isAlertOnly) {
-                btn.style.display = 'none';
-                document.querySelector('#confirm-modal button:first-child').innerText = 'Tutup';
-            } else {
-                btn.style.display = 'block';
-                document.querySelector('#confirm-modal button:first-child').innerText = 'Batal';
-                btn.onclick = () => { onConfirm(); closeModal('confirm-modal'); };
-            }
+            if (isAlertOnly) { btn.style.display = 'none'; document.querySelector('#confirm-modal button:first-child').innerText = 'Tutup'; } 
+            else { btn.style.display = 'block'; document.querySelector('#confirm-modal button:first-child').innerText = 'Batal'; btn.onclick = () => { onConfirm(); closeModal('confirm-modal'); }; }
             document.getElementById('confirm-modal').classList.replace('hidden', 'flex');
         }
 
         function closeModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
 
         function togglePassword(inputId, iconId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(iconId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
+            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
+            if (input.type === 'password') { input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
+            else { input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
         }
 
         function openBranchProfile() {
-            if(!currentBranch || !allBranchData[currentBranch]) return;
-            const branch = allBranchData[currentBranch];
-            const info = branch.info || {};
-            
+            const info = allBranchData[currentBranch]?.info || {};
             document.getElementById('profile-foto').src = info.foto || 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Foto+Rumah+Singgah';
             document.getElementById('profile-kota').innerText = currentBranch;
             document.getElementById('profile-alamat').innerText = info.alamat || '-';
-            document.getElementById('profile-kamar').innerText = branch.rooms.length + ' Kamar';
+            document.getElementById('profile-kamar').innerText = allBranchData[currentBranch].rooms.length + ' Kamar';
             document.getElementById('profile-pj').innerText = info.pj || '-';
             document.getElementById('profile-cp').innerText = info.telp || '-';
-            
             const mapLink = document.getElementById('profile-map');
-            if(info.linkMap && info.linkMap.trim() !== '') {
-                mapLink.href = info.linkMap; mapLink.classList.remove('hidden');
-            } else {
-                mapLink.classList.add('hidden');
-            }
-            
+            if(info.linkMap) { mapLink.href = info.linkMap; mapLink.classList.remove('hidden'); } else { mapLink.classList.add('hidden'); }
             document.getElementById('profile-awal').innerText = info.awalKontrak || '-';
             document.getElementById('profile-akhir').innerText = info.akhirKontrak || '-';
             document.getElementById('branch-profile-modal').classList.replace('hidden', 'flex');
@@ -1156,12 +1130,8 @@
         function openEditBranchProfile() {
             closeModal('branch-profile-modal');
             const info = allBranchData[currentBranch].info || {};
-            
             currentBranchPhotoBase64 = info.foto || null;
-            document.getElementById('edit-branch-foto-preview').innerHTML = currentBranchPhotoBase64 
-                ? `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">` 
-                : `<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fa-solid fa-image text-3xl mb-2"></i><span class="text-[10px] font-black uppercase">Belum Ada Foto</span></div>`;
-                
+            document.getElementById('edit-branch-foto-preview').innerHTML = currentBranchPhotoBase64 ? `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">` : `<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fa-solid fa-image text-3xl mb-2"></i><span class="text-[10px] font-black uppercase">Belum Ada Foto</span></div>`;
             document.getElementById('edit-branch-alamat').value = info.alamat || '';
             document.getElementById('edit-branch-pj').value = info.pj || '';
             document.getElementById('edit-branch-telp').value = info.telp || '';
@@ -1169,52 +1139,40 @@
             document.getElementById('edit-branch-awal').value = info.awalKontrak || '';
             document.getElementById('edit-branch-akhir').value = info.akhirKontrak || '';
             
-            // Pengaturan Kredensial Khusus Pusat
             if (currentUser && currentUser.role === 'admin') {
                 document.getElementById('admin-credentials-section').classList.remove('hidden');
                 document.getElementById('edit-branch-username').value = info.username || currentBranch.toLowerCase().replace(/\s/g, '');
                 document.getElementById('edit-branch-password').value = info.password || '123';
-            } else {
-                document.getElementById('admin-credentials-section').classList.add('hidden');
-            }
-
+            } else { document.getElementById('admin-credentials-section').classList.add('hidden'); }
             document.getElementById('edit-branch-modal').classList.replace('hidden', 'flex');
         }
 
         function previewBranchImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentBranchPhotoBase64 = e.target.result;
-                    document.getElementById('edit-branch-foto-preview').innerHTML = `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">`;
-                };
+                reader.onload = function(e) { currentBranchPhotoBase64 = e.target.result; document.getElementById('edit-branch-foto-preview').innerHTML = `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">`; };
                 reader.readAsDataURL(input.files[0]);
             }
         }
         
         document.getElementById('edit-branch-form').onsubmit = (e) => {
             e.preventDefault();
-            if(!allBranchData[currentBranch].info) allBranchData[currentBranch].info = {};
-            
-            allBranchData[currentBranch].info.alamat = document.getElementById('edit-branch-alamat').value;
-            allBranchData[currentBranch].info.pj = document.getElementById('edit-branch-pj').value;
-            allBranchData[currentBranch].info.telp = document.getElementById('edit-branch-telp').value;
-            allBranchData[currentBranch].info.linkMap = document.getElementById('edit-branch-map').value;
-            allBranchData[currentBranch].info.awalKontrak = document.getElementById('edit-branch-awal').value;
-            allBranchData[currentBranch].info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
-            allBranchData[currentBranch].info.foto = currentBranchPhotoBase64;
+            const info = allBranchData[currentBranch].info || {};
+            info.alamat = document.getElementById('edit-branch-alamat').value;
+            info.pj = document.getElementById('edit-branch-pj').value;
+            info.telp = document.getElementById('edit-branch-telp').value;
+            info.linkMap = document.getElementById('edit-branch-map').value;
+            info.awalKontrak = document.getElementById('edit-branch-awal').value;
+            info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
+            info.foto = currentBranchPhotoBase64;
             
             if (currentUser && currentUser.role === 'admin') {
-                allBranchData[currentBranch].info.username = document.getElementById('edit-branch-username').value.trim();
-                allBranchData[currentBranch].info.password = document.getElementById('edit-branch-password').value;
+                info.username = document.getElementById('edit-branch-username').value.trim();
+                info.password = document.getElementById('edit-branch-password').value;
             }
-            
-            saveData();
-            closeModal('edit-branch-modal');
-            openBranchProfile(); 
+            saveData(); closeModal('edit-branch-modal'); openBranchProfile(); 
         };
 
-        // FUNGSI PENGATURAN ADMIN PUSAT
         function openAdminSettings() {
             if (currentUser && currentUser.role === 'admin') {
                 document.getElementById('admin-username-input').value = adminCreds.username;
@@ -1225,21 +1183,12 @@
 
         document.getElementById('admin-settings-form').onsubmit = (e) => {
             e.preventDefault();
-            const newUsername = document.getElementById('admin-username-input').value.trim();
-            const newPassword = document.getElementById('admin-password-input').value;
-            
-            adminCreds = { username: newUsername, password: newPassword };
-            localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
-            
-            closeModal('admin-settings-modal');
-            showConfirm("Berhasil Disimpan", "Username & Password Pusat telah diubah. Harap ingat kredensial baru ini untuk login Anda selanjutnya.", null, true);
+            adminCreds = { username: document.getElementById('admin-username-input').value.trim(), password: document.getElementById('admin-password-input').value };
+            saveData(); closeModal('admin-settings-modal');
+            showConfirm("Berhasil", "Username & Password Pusat telah diubah.", null, true);
         };
 
-        // Initialize Render jika lolos Auth
-        if (checkAuth()) {
-            renderBranchNav();
-            renderRooms();
-        }
+        if (checkAuth()) { renderBranchNav(); renderRooms(); }
     </script>
 </body>
 </html>
