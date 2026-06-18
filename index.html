@@ -489,7 +489,7 @@
         // =========================================================
         // KONFIGURASI DATABASE REALTIME (FIREBASE)
         // =========================================================
-        const GITHUB_FIREBASE_CONFIG = {
+        const firebaseConfig = {
             apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYjvkIYyNso",
             authDomain: "database-rumsing-erzet.firebaseapp.com",
             projectId: "database-rumsing-erzet",
@@ -499,18 +499,13 @@
             measurementId: "G-TKM3H0BLND"
         };
 
-        const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
-            ? JSON.parse(__firebase_config) 
-            : GITHUB_FIREBASE_CONFIG;
-
         let isCloudSyncActive = false;
         let db, auth, firestoreApi;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
+        const appId = 'rumsing-app';
 
         // =========================================================
         // PENGEMBALIAN CACHE LOKAL (OFFLINE-FIRST)
         // =========================================================
-        // Fitur ini diaktifkan kembali agar data tidak hilang saat internet/Firebase error
         const DEFAULT_BRANCHES = ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
         let savedBranches = JSON.parse(localStorage.getItem('rskd_branches')) || [...DEFAULT_BRANCHES];
         let allBranchData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')) || {};
@@ -528,10 +523,8 @@
         let currentPhotoBase64 = null;
         let currentBranchPhotoBase64 = null;
 
-        // MASUKKAN URL GOOGLE APPS SCRIPT ANDA
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBiwfg7G-kFzhrWQZnz0ld244GqiY3DDdBYAna-YevxvNTxCRLWqPofkfQ4AA9l8fY7A/exec';
 
-        // Terapkan Memory Awal
         savedBranches.forEach(branch => {
             if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
         });
@@ -573,21 +566,21 @@
                 firestoreApi = firestoreModule;
 
                 try {
-                    // Pastikan Anonymous Auth sudah NYALA di Firebase Console Anda
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await authModule.signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await authModule.signInAnonymously(auth);
-                    }
+                    await authModule.signInAnonymously(auth);
                     isCloudSyncActive = true;
                     listenToCloud();
                 } catch (e) {
                     console.error("Firebase Auth Error:", e);
-                    setSyncStatus('error', 'Auth Gagal (Cek Setelan Anonymous Firebase)');
+                    // Modifikasi agar menampilkan pesan error asli Firebase
+                    let errorMessage = 'Auth Gagal';
+                    if (e.code === 'auth/admin-restricted-operation' || e.code === 'auth/operation-not-allowed') {
+                        errorMessage = 'Anonymous Auth belum diaktifkan';
+                    } else if (e.code === 'auth/unauthorized-domain') {
+                        errorMessage = 'Domain belum diotorisasi';
+                    }
+                    setSyncStatus('error', errorMessage);
                 }
             });
-        } else {
-            console.warn("Firebase tidak dikonfigurasi.");
         }
 
         // =========================================================
@@ -606,14 +599,13 @@
                         allBranchData = parsed.branchData || allBranchData;
                         adminCreds = parsed.adminCreds || adminCreds;
                         
-                        // SINKRONKAN JUGA KE CACHE LOKAL (Agar tidak hilang saat refresh)
+                        // SINKRONKAN JUGA KE CACHE LOKAL
                         localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
                         localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
                         localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
 
                         setSyncStatus('success', 'Live Sync Aktif');
 
-                        // Perbarui tampilan secara realtime jika user sedang login
                         if (checkAuth()) {
                             if (!savedBranches.includes(currentBranch)) currentBranch = savedBranches[0] || "";
                             renderBranchNav();
@@ -621,18 +613,17 @@
                         }
                     }
                 } else {
-                    saveDataToCloud(); // Jika database kosong, unggah data awal
+                    saveDataToCloud(); 
                 }
             }, (error) => {
                 console.error("Cloud sync listen error:", error);
-                setSyncStatus('error', 'Akses Ditolak (Cek Aturan Firestore)');
+                setSyncStatus('error', 'Akses Database Ditolak');
             });
         }
 
         function saveDataToCloud() {
             if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
             
-            // Hapus foto berukuran besar (Mencegah Database Overload 1MB)
             const strippedBranchData = JSON.parse(JSON.stringify(allBranchData));
             for (const branch in strippedBranchData) {
                 strippedBranchData[branch].rooms.forEach(room => {
@@ -652,34 +643,29 @@
             const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
             firestoreApi.setDoc(docRef, { payload: payload }).catch(e => {
                 console.error("Cloud save error:", e);
-                setSyncStatus('error', 'Gagal Menyimpan ke Cloud');
+                setSyncStatus('error', 'Gagal Simpan ke Cloud');
             });
         }
 
         function saveData() {
-            // SIMPAN KE CACHE LOKAL TERLEBIH DAHULU (Offline-First)
             localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
             localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
             localStorage.setItem('rskd_active_branch', currentBranch);
             
-            // Update UI
             renderBranchNav();
             renderRooms();
-            
-            // Lalu sinkronkan ke Cloud Firebase di latar belakang
             saveDataToCloud();
         }
 
         // =========================================================
-        // LOGIKA OTENTIKASI (UPDATE KHUSUS SAFARI/MOBILE)
+        // LOGIKA OTENTIKASI
         // =========================================================
         function handleLogin(e) {
             e.preventDefault();
             const rawUser = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value;
 
-            // Admin cek
             if (rawUser.toLowerCase() === adminCreds.username.toLowerCase() && pass === adminCreds.password) {
                 currentUser = { role: 'admin', name: 'Super Admin Pusat' };
             } else {
@@ -746,7 +732,6 @@
                 document.getElementById('btn-clear-history').classList.add('hidden');
                 document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
                 
-                // Kunci cabang agar tak bisa lihat cabang lain
                 currentBranch = currentUser.branch; 
             }
             
