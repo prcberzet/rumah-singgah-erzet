@@ -24,6 +24,12 @@
 </head>
 <body class="p-4 md:p-8">
 
+    <!-- Indikator Cloud Sync -->
+    <div id="sync-indicator" class="fixed bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-200 flex items-center gap-2 z-50 transition-all duration-300 hidden">
+        <i id="sync-icon" class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> 
+        <span id="sync-text" class="text-[10px] font-black text-slate-700 tracking-widest uppercase">Menghubungkan...</span>
+    </div>
+
     <!-- PORTAL LOGIN (Hanya tampil saat belum login) -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-[32px] shadow-2xl max-w-sm w-full border border-slate-100">
@@ -483,11 +489,6 @@
         // =========================================================
         // KONFIGURASI DATABASE REALTIME (FIREBASE)
         // =========================================================
-        // WAJIB DIISI JIKA DI-HOSTING DI GITHUB: 
-        // 1. Pergi ke console.firebase.google.com, buat Project Gratis.
-        // 2. Klik ikon Web (</>), buat Web App, lalu copy config-nya ke bawah ini:
-        // 3. Masuk ke menu "Build > Authentication", aktifkan "Anonymous".
-        // 4. Masuk ke menu "Build > Firestore Database", buat database dalam mode "Test Mode".
         const GITHUB_FIREBASE_CONFIG = {
             apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYjvkIYyNso",
             authDomain: "database-rumsing-erzet.firebaseapp.com",
@@ -506,13 +507,15 @@
         let db, auth, firestoreApi;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
 
-        // STATE APLIKASI AWAL
+        // =========================================================
+        // PENGEMBALIAN CACHE LOKAL (OFFLINE-FIRST)
+        // =========================================================
+        // Fitur ini diaktifkan kembali agar data tidak hilang saat internet/Firebase error
         const DEFAULT_BRANCHES = ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
-        let savedBranches = [...DEFAULT_BRANCHES];
-        let allBranchData = {};
-        let adminCreds = { username: 'admin', password: 'admin' };
+        let savedBranches = JSON.parse(localStorage.getItem('rskd_branches')) || [...DEFAULT_BRANCHES];
+        let allBranchData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')) || {};
+        let adminCreds = JSON.parse(localStorage.getItem('rskd_admin_creds')) || { username: 'admin', password: 'admin' };
         
-        // Coba baca sesi auth dari browser (ini aman karena sifatnya per-sesi/sementara)
         let currentUser = null;
         try {
             currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null;
@@ -520,7 +523,7 @@
             console.warn("Sesi diblokir mode privat");
         }
         
-        let currentBranch = savedBranches[0] || "";
+        let currentBranch = localStorage.getItem('rskd_active_branch') || (savedBranches.length > 0 ? savedBranches[0] : "");
         let selectedRoomId = null;
         let currentPhotoBase64 = null;
         let currentBranchPhotoBase64 = null;
@@ -533,8 +536,32 @@
             if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
         });
 
+        // =========================================================
+        // UI INDIKATOR CLOUD
+        // =========================================================
+        function setSyncStatus(status, message) {
+            const ind = document.getElementById('sync-indicator');
+            const icon = document.getElementById('sync-icon');
+            const txt = document.getElementById('sync-text');
+            ind.classList.remove('hidden');
+            
+            if(status === 'success') {
+                icon.className = 'fa-solid fa-cloud text-emerald-500';
+                txt.innerText = message || 'Live Sync Aktif';
+            } else if (status === 'error') {
+                icon.className = 'fa-solid fa-triangle-exclamation text-red-500';
+                txt.innerText = message || 'Sync Gagal';
+            } else {
+                icon.className = 'fa-solid fa-circle-notch fa-spin text-blue-500';
+                txt.innerText = 'Menghubungkan...';
+            }
+        }
+
+        // =========================================================
         // INIT FIREBASE
+        // =========================================================
         if (firebaseConfig.apiKey) {
+            setSyncStatus('loading');
             Promise.all([
                 import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
                 import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
@@ -546,28 +573,21 @@
                 firestoreApi = firestoreModule;
 
                 try {
-                    // Cek ketersediaan token bawaan (Canvas) sebelum jatuh ke Anonymous Auth
+                    // Pastikan Anonymous Auth sudah NYALA di Firebase Console Anda
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
                         await authModule.signInWithCustomToken(auth, __initial_auth_token);
                     } else {
                         await authModule.signInAnonymously(auth);
                     }
-
                     isCloudSyncActive = true;
-                    
-                    // Menampilkan indikator sinkronisasi jika berhasil
-                    const syncIndicator = document.createElement('div');
-                    syncIndicator.innerHTML = '<i class="fa-solid fa-cloud text-emerald-500"></i> <span class="text-[10px] font-bold text-slate-600 tracking-widest uppercase">Live Sync</span>';
-                    syncIndicator.className = 'fixed bottom-4 left-4 bg-white/80 backdrop-blur px-3 py-1.5 rounded-full shadow border border-slate-200 flex items-center gap-2 z-50 pointer-events-none';
-                    document.body.appendChild(syncIndicator);
-
                     listenToCloud();
                 } catch (e) {
                     console.error("Firebase Auth Error:", e);
+                    setSyncStatus('error', 'Auth Gagal (Cek Setelan Anonymous Firebase)');
                 }
             });
         } else {
-            console.warn("Firebase tidak dikonfigurasi. Aplikasi berjalan murni secara offline (sementara).");
+            console.warn("Firebase tidak dikonfigurasi.");
         }
 
         // =========================================================
@@ -586,9 +606,15 @@
                         allBranchData = parsed.branchData || allBranchData;
                         adminCreds = parsed.adminCreds || adminCreds;
                         
-                        // Perbarui tampilan secara realtime (SPA)
+                        // SINKRONKAN JUGA KE CACHE LOKAL (Agar tidak hilang saat refresh)
+                        localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
+                        localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
+                        localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
+
+                        setSyncStatus('success', 'Live Sync Aktif');
+
+                        // Perbarui tampilan secara realtime jika user sedang login
                         if (checkAuth()) {
-                            // Mencegah reset pilihan cabang saat update masuk dari luar
                             if (!savedBranches.includes(currentBranch)) currentBranch = savedBranches[0] || "";
                             renderBranchNav();
                             renderRooms();
@@ -597,7 +623,10 @@
                 } else {
                     saveDataToCloud(); // Jika database kosong, unggah data awal
                 }
-            }, (error) => console.error("Cloud sync listen error:", error));
+            }, (error) => {
+                console.error("Cloud sync listen error:", error);
+                setSyncStatus('error', 'Akses Ditolak (Cek Aturan Firestore)');
+            });
         }
 
         function saveDataToCloud() {
@@ -621,14 +650,24 @@
             });
 
             const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => console.error("Cloud save error:", e));
+            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => {
+                console.error("Cloud save error:", e);
+                setSyncStatus('error', 'Gagal Menyimpan ke Cloud');
+            });
         }
 
         function saveData() {
+            // SIMPAN KE CACHE LOKAL TERLEBIH DAHULU (Offline-First)
+            localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
+            localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
+            localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
+            localStorage.setItem('rskd_active_branch', currentBranch);
+            
             // Update UI
             renderBranchNav();
             renderRooms();
-            // Simpan ke Cloud
+            
+            // Lalu sinkronkan ke Cloud Firebase di latar belakang
             saveDataToCloud();
         }
 
@@ -659,6 +698,7 @@
                 if(matchedBranch) {
                     currentUser = { role: 'cabang', name: `Admin ${matchedBranch}`, branch: matchedBranch };
                     currentBranch = matchedBranch;
+                    localStorage.setItem('rskd_active_branch', currentBranch);
                 } else {
                     showConfirm("Login Gagal", "Username atau password salah! Silakan coba lagi.", null, true);
                     return false;
@@ -752,6 +792,7 @@
                     const btn = document.createElement('button');
                     btn.onclick = () => { 
                         currentBranch = branch; 
+                        localStorage.setItem('rskd_active_branch', currentBranch);
                         document.getElementById('active-branch-label').innerText = branch; 
                         renderBranchNav();
                         renderRooms(); 
