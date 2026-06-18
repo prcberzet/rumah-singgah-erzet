@@ -35,15 +35,20 @@
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Monitoring Rumah Singgah</p>
             </div>
             
-            <form id="login-form" class="space-y-5">
+            <!-- Penambahan action="javascript:void(0);" sangat penting untuk Safari Mobile -->
+            <form id="login-form" class="space-y-5" action="javascript:void(0);" onsubmit="return handleLogin(event)">
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Username</label>
-                    <!-- Tambahan autocapitalize="none" agar HP tidak auto huruf besar -->
-                    <input type="text" id="login-user" required placeholder="Contoh: username" class="bg-slate-50 border-slate-200 focus:bg-white" autocapitalize="none" autocorrect="off" autocomplete="off">
+                    <input type="text" id="login-user" required placeholder="Contoh: username" class="bg-slate-50 border-slate-200 focus:bg-white" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false">
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Password</label>
-                    <input type="password" id="login-pass" required placeholder="***" class="bg-slate-50 border-slate-200 focus:bg-white">
+                    <div class="relative">
+                        <input type="password" id="login-pass" required placeholder="***" class="bg-slate-50 border-slate-200 focus:bg-white w-full pr-10">
+                        <button type="button" onclick="togglePassword('login-pass', 'login-pass-icon')" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                            <i id="login-pass-icon" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
             </form>
@@ -444,7 +449,12 @@
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Password Pusat</label>
-                    <input type="text" id="admin-password-input" required class="bg-slate-50 text-sm">
+                    <div class="relative">
+                        <input type="password" id="admin-password-input" required class="bg-slate-50 text-sm w-full pr-10">
+                        <button type="button" onclick="togglePassword('admin-password-input', 'admin-pass-icon')" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                            <i id="admin-pass-icon" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <div class="pt-4 flex gap-3">
                     <button type="button" onclick="closeModal('admin-settings-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl text-sm">Batal</button>
@@ -476,7 +486,13 @@
         let allBranchData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')) || {};
         let adminCreds = JSON.parse(localStorage.getItem('rskd_admin_creds')) || { username: 'admin', password: 'admin' };
         
-        let currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null;
+        let currentUser = null;
+        try {
+            currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null;
+        } catch(e) {
+            console.warn("Sesi mungkin diblokir oleh mode privat Safari");
+        }
+        
         let currentBranch = localStorage.getItem('rskd_active_branch') || (savedBranches.length > 0 ? savedBranches[0] : "");
         
         let selectedRoomId = null;
@@ -492,9 +508,9 @@
         });
 
         // =========================================================
-        // LOGIKA OTENTIKASI (UPDATE UNTUK HP - SPA TANPA RELOAD)
+        // LOGIKA OTENTIKASI (UPDATE KHUSUS SAFARI/MOBILE)
         // =========================================================
-        document.getElementById('login-form').addEventListener('submit', (e) => {
+        function handleLogin(e) {
             e.preventDefault();
             const rawUser = document.getElementById('login-user').value.trim();
             const pass = document.getElementById('login-pass').value;
@@ -521,11 +537,15 @@
                     currentBranch = matchedBranch;
                 } else {
                     showConfirm("Login Gagal", "Username atau password salah! Silakan coba lagi.", null, true);
-                    return;
+                    return false;
                 }
             }
 
-            sessionStorage.setItem('rskd_user', JSON.stringify(currentUser));
+            try {
+                sessionStorage.setItem('rskd_user', JSON.stringify(currentUser));
+            } catch (error) {
+                console.warn('Mode privat diaktifkan, sesi login sementara digunakan.');
+            }
             
             // SPA Transition (Tidak perlu reload halaman untuk masuk)
             document.getElementById('login-form').reset(); // Bersihkan form
@@ -533,10 +553,14 @@
                 renderBranchNav();
                 renderRooms();
             }
-        });
+            
+            return false;
+        }
 
         function logout() {
-            sessionStorage.removeItem('rskd_user');
+            try {
+                sessionStorage.removeItem('rskd_user');
+            } catch(e) {}
             currentUser = null;
             checkAuth(); // SPA Transition kembali ke form login
         }
@@ -1071,7 +1095,7 @@
         }
 
         // =========================================================
-        // PROFIL CABANG & MODAL HELPERS
+        // PROFIL CABANG, MODAL HELPERS, & TOGGLE PASSWORD
         // =========================================================
         function showConfirm(title, message, onConfirm, isAlertOnly = false) {
             document.getElementById('confirm-title').innerText = title;
@@ -1090,6 +1114,20 @@
         }
 
         function closeModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
 
         function openBranchProfile() {
             if(!currentBranch || !allBranchData[currentBranch]) return;
