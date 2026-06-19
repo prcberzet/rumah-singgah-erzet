@@ -15,7 +15,6 @@
         input:focus, select:focus, textarea:focus { border-color: #f97316; outline: none; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1); background: #fff; }
         .photo-container { position: relative; width: 100%; height: 160px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -23,12 +22,6 @@
     </style>
 </head>
 <body class="p-4 md:p-8">
-
-    <!-- Indikator Cloud Sync -->
-    <div id="sync-indicator" class="fixed bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-200 flex items-center gap-2 z-50 transition-all duration-300 hidden">
-        <i id="sync-icon" class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> 
-        <span id="sync-text" class="text-[10px] font-black text-slate-700 tracking-widest uppercase">Menghubungkan...</span>
-    </div>
 
     <!-- PORTAL LOGIN -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
@@ -43,18 +36,18 @@
             <form id="login-form" class="space-y-5" action="javascript:void(0);" onsubmit="return handleLogin(event)">
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Username</label>
-                    <input type="text" id="login-user" required class="bg-slate-50 border-slate-200 focus:bg-white" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false">
+                    <input type="text" id="login-user" required placeholder="Contoh: admin" class="bg-slate-50 border-slate-200 focus:bg-white" autocapitalize="none" autocorrect="off" autocomplete="off" spellcheck="false">
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Password</label>
                     <div class="relative">
-                        <input type="password" id="login-pass" required class="bg-slate-50 border-slate-200 focus:bg-white w-full pr-10">
-                        <button type="button" onclick="togglePassword('login-pass', 'login-pass-icon')" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 focus:outline-none">
+                        <input type="password" id="login-pass" required placeholder="***" class="bg-slate-50 border-slate-200 focus:bg-white w-full pr-10">
+                        <button type="button" onclick="togglePassword('login-pass', 'login-pass-icon')" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
                             <i id="login-pass-icon" class="fa-solid fa-eye"></i>
                         </button>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg mt-2">LOGIN</button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
             </form>
         </div>
     </div>
@@ -67,10 +60,12 @@
                 <div class="flex items-center gap-2 mt-2" id="role-badge-container"></div>
             </div>
             <div class="flex flex-col items-end gap-2">
-                <button onclick="openBranchProfile()" class="text-xs font-black text-orange-600 bg-orange-50 px-5 py-2.5 rounded-full uppercase tracking-wider flex items-center gap-2 border border-orange-100">
+                <button onclick="openBranchProfile()" class="text-xs font-black text-orange-600 bg-orange-50 hover:bg-orange-100 transition px-5 py-2.5 rounded-full uppercase tracking-wider flex items-center gap-2 border border-orange-100 cursor-pointer">
                     <i class="fa-solid fa-house-medical"></i> PROFIL: <span id="active-branch-label">-</span>
                 </button>
-                <button onclick="logout()" class="text-[10px] font-bold text-red-500 uppercase tracking-wider px-2">Keluar</button>
+                <button onclick="logout()" class="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 uppercase tracking-wider px-2 cursor-pointer">
+                    <i class="fa-solid fa-right-from-bracket"></i> Keluar
+                </button>
             </div>
         </div>
 
@@ -100,112 +95,82 @@
     <!-- SCRIPT UTAMA -->
     <script>
         // =========================================================
-        // KONFIGURASI DATABASE REALTIME (FIREBASE)
+        // KONFIGURASI FIREBASE (SALIN DARI FIREBASE CONSOLE)
         // =========================================================
         const firebaseConfig = {
-          apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso",
-          authDomain: "database-rumsing-erzet.firebaseapp.com",
-          projectId: "database-rumsing-erzet",
-          storageBucket: "database-rumsing-erzet.firebasestorage.app",
-          messagingSenderId: "181345777217",
-          appId: "1:181345777217:web:f0c2a733922aab5e01b8c0",
-          measurementId: "G-TKM3H0BLND"
+            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso",
+            authDomain: "database-rumsing-erzet.firebaseapp.com",
+            projectId: "database-rumsing-erzet",
+            storageBucket: "database-rumsing-erzet.firebasestorage.app",
+            messagingSenderId: "181345777217",
+            appId: "1:181345777217:web:f0c2a733922aab5e01b8c0",
+            measurementId: "G-TKM3H0BLND"
         };
 
-        let isCloudSyncActive = false;
-        let db, auth, firestoreApi;
-        const appId = 'rumsing-app';
-
-        // DATA LOKAL & AUTH
-        let savedBranches = JSON.parse(localStorage.getItem('rskd_branches')) || ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
+        // =========================================================
+        // DATA LOKAL & AUTH (OFFLINE-FIRST)
+        // =========================================================
+        const DEFAULT_BRANCHES = ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
+        let savedBranches = JSON.parse(localStorage.getItem('rskd_branches')) || [...DEFAULT_BRANCHES];
         let allBranchData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')) || {};
         let adminCreds = JSON.parse(localStorage.getItem('rskd_admin_creds')) || { username: 'admin', password: 'admin' };
         
         let currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null;
         let currentBranch = localStorage.getItem('rskd_active_branch') || savedBranches[0];
 
-        // INIT FIREBASE
-        Promise.all([
-            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
-            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
-            import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
-        ]).then(async ([appModule, authModule, firestoreModule]) => {
-            const app = appModule.initializeApp(firebaseConfig);
-            auth = authModule.getAuth(app);
-            db = firestoreModule.getFirestore(app);
-            firestoreApi = firestoreModule;
+        // Inisialisasi Data Default
+        savedBranches.forEach(branch => { if (!allBranchData[branch]) initBranchData(branch, 12); });
 
-            try {
-                await authModule.signInAnonymously(auth);
-                isCloudSyncActive = true;
-                setSyncStatus('success', 'Live Sync Aktif');
-                listenToCloud();
-            } catch (e) {
-                console.error("Firebase Auth Error:", e);
-                setSyncStatus('error', 'Auth Gagal: ' + e.code);
+        // Logic Auth Sederhana
+        function handleLogin(e) {
+            e.preventDefault();
+            const user = document.getElementById('login-user').value.trim();
+            const pass = document.getElementById('login-pass').value;
+
+            if (user.toLowerCase() === adminCreds.username.toLowerCase() && pass === adminCreds.password) {
+                currentUser = { role: 'admin', name: 'Super Admin Pusat' };
+            } else {
+                let matched = savedBranches.find(b => {
+                    const info = allBranchData[b]?.info || {};
+                    return user.toLowerCase() === (info.username || b.toLowerCase().replace(/\s/g, '')) && pass === (info.password || '123');
+                });
+                if(matched) { currentUser = { role: 'cabang', name: `Admin ${matched}`, branch: matched }; currentBranch = matched; }
+                else { alert("Username/Password salah!"); return false; }
             }
-        });
-
-        // =========================================================
-        // FUNGSI UTAMA (Sinkronisasi & UI)
-        // =========================================================
-        function setSyncStatus(status, message) {
-            const ind = document.getElementById('sync-indicator');
-            const icon = document.getElementById('sync-icon');
-            const txt = document.getElementById('sync-text');
-            ind.classList.remove('hidden');
-            if(status === 'success') { icon.className = 'fa-solid fa-cloud text-emerald-500'; txt.innerText = message; }
-            else if (status === 'error') { icon.className = 'fa-solid fa-triangle-exclamation text-red-500'; txt.innerText = message; }
+            sessionStorage.setItem('rskd_user', JSON.stringify(currentUser));
+            document.getElementById('login-overlay').classList.add('hidden');
+            checkAuth();
+            return false;
         }
 
-        function listenToCloud() {
-            if (!auth.currentUser || !firestoreApi) return;
-            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            firestoreApi.onSnapshot(docRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    const parsed = JSON.parse(data.payload);
-                    savedBranches = parsed.branches;
-                    allBranchData = parsed.branchData;
-                    adminCreds = parsed.adminCreds;
-                    localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
-                    localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
-                    if (checkAuth()) { renderBranchNav(); renderRooms(); }
-                }
-            });
+        function logout() { sessionStorage.removeItem('rskd_user'); window.location.reload(); }
+        function togglePassword(id, iconId) { 
+            const i = document.getElementById(id), ic = document.getElementById(iconId);
+            i.type = i.type === 'password' ? 'text' : 'password'; 
+            ic.classList.toggle('fa-eye'); ic.classList.toggle('fa-eye-slash');
         }
 
-        function saveDataToCloud() {
-            if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
-            const payload = JSON.stringify({ branches: savedBranches, branchData: allBranchData, adminCreds: adminCreds });
-            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            firestoreApi.setDoc(docRef, { payload: payload });
+        function checkAuth() {
+            if(!currentUser) return false;
+            document.getElementById('main-app').classList.remove('hidden');
+            renderBranchNav(); renderRooms();
+            return true;
+        }
+
+        function initBranchData(name, rooms) {
+            allBranchData[name] = { info: { username: name.toLowerCase().replace(/\s/g,''), password: '123' }, rooms: Array.from({length:rooms}, (_,i)=>({id:i+1, no:`Kamar ${i+1}`, penghuni:null})), history: [], nextRoomId: rooms+1 };
         }
 
         function saveData() {
             localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
             localStorage.setItem('rskd_active_branch', currentBranch);
-            renderBranchNav(); renderRooms(); saveDataToCloud();
+            renderBranchNav(); renderRooms();
         }
 
-        // Logic lainnya (handleLogin, checkAuth, renderBranchNav, dll. tetap sama)
-        // ... (Fungsi-fungsi lain sudah disertakan dalam template ini)
-        
-        function togglePassword(inputId, iconId) {
-            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
-            if (input.type === 'password') { input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
-            else { input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
-        }
-
-        function handleLogin(e) {
-            // ... logic login disederhanakan
-            if(checkAuth()) { renderBranchNav(); renderRooms(); }
-            return false;
-        }
-
-        // Jalankan saat load
-        if (checkAuth()) { renderBranchNav(); renderRooms(); }
+        // Render awal
+        if(checkAuth()) { renderBranchNav(); renderRooms(); }
+        else { document.getElementById('login-overlay').classList.remove('hidden'); }
     </script>
 </body>
 </html>
