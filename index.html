@@ -2,54 +2,31 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <!-- Meta Viewport sangat penting untuk HP -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rumah Singgah Rumah Zakat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; overflow-x: hidden; }
-        
-        /* Animasi Card Kamar */
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .room-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; }
         .room-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
-        
-        /* Mencegah Zoom otomatis di iPhone/iOS saat mengetik */
-        input, select, textarea { 
-            width: 100%; 
-            padding: 0.75rem; 
-            border: 1px solid #e2e8f0; 
-            border-radius: 0.75rem; 
-            transition: all 0.2s; 
-            background: #fdfdfd; 
-            font-size: 16px; /* Wajib 16px untuk iOS */
-        }
-        @media (min-width: 768px) { input, select, textarea { font-size: 14px; } }
-        
+        input, select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; transition: all 0.2s; background: #fdfdfd; }
         input:focus, select:focus, textarea:focus { border-color: #f97316; outline: none; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1); background: #fff; }
-        .photo-container { position: relative; width: 100%; height: 140px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        @media (min-width: 768px) { .photo-container { height: 160px; } }
+        .photo-container { position: relative; width: 100%; height: 160px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
-        /* Custom scrollbar untuk estetika */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
-<body class="p-3 md:p-8 text-slate-800">
+<body class="p-4 md:p-8">
 
-    <!-- Indikator Cloud Sync -->
-    <div id="sync-indicator" class="fixed bottom-4 left-4 right-4 md:right-auto bg-white/90 backdrop-blur px-4 py-3 md:py-2 rounded-2xl md:rounded-full shadow-lg border border-slate-200 flex items-center justify-center md:justify-start gap-2 z-50 transition-all duration-300 hidden">
-        <i id="sync-icon" class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> 
-        <span id="sync-text" class="text-xs md:text-[10px] font-black text-slate-700 tracking-widest uppercase">Menghubungkan...</span>
-    </div>
-
-    <!-- PORTAL LOGIN (Hanya tampil saat belum login) -->
+    <!-- PORTAL LOGIN -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
-        <div class="bg-white p-6 md:p-8 rounded-[32px] shadow-2xl max-w-sm w-full border border-slate-100">
-            <div class="text-center mb-6 md:mb-8">
+        <div class="bg-white p-8 rounded-[32px] shadow-2xl max-w-sm w-full border border-slate-100">
+            <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl shadow-inner">
                     <i class="fa-solid fa-house-chimney-medical"></i>
                 </div>
@@ -57,7 +34,7 @@
                 <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Monitoring Rumah Singgah</p>
             </div>
             
-            <form id="login-form" class="space-y-4 md:space-y-5" onsubmit="return handleLogin(event)">
+            <form id="login-form" class="space-y-5" onsubmit="return handleLogin(event)">
                 <div id="login-error-msg" class="hidden text-[11px] text-red-600 font-bold bg-red-50 p-3 rounded-xl border border-red-100 text-center"></div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Username</label>
@@ -72,78 +49,69 @@
                         </button>
                     </div>
                 </div>
-                <button type="submit" id="login-btn" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
+                <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
             </form>
 
             <div class="mt-6 bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
-                <p class="text-[11px] text-blue-800 font-medium leading-relaxed"><i class="fa-solid fa-circle-info mr-1"></i> Akses Darurat: <br>User: <strong>admin</strong> | Pass: <strong>admin</strong></p>
+                <p class="text-[11px] text-blue-800 font-medium"><i class="fa-solid fa-circle-info mr-1"></i> Jika lupa sandi, ketik darurat: <br>User: <strong>admin</strong> | Pass: <strong>admin</strong></p>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP (Hanya tampil saat sudah login) -->
+    <!-- MAIN APP -->
     <div id="main-app" class="max-w-7xl mx-auto hidden">
-        <!-- Header Responsif -->
-        <div class="flex flex-col md:flex-row md:items-start justify-between gap-4 md:gap-6 mb-6 md:mb-8">
-            <div class="text-center md:text-left">
-                <h1 class="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight flex flex-col md:flex-row items-center gap-1 md:gap-3">
-                    <span>Rumah Singgah</span> <span class="text-orange-600 hidden md:inline">-</span> <span class="text-orange-600">Rumah Zakat</span>
+        <div class="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <span>Rumah Singgah <span class="text-orange-600">Rumah Zakat</span></span>
                 </h1>
-                <div class="flex items-center justify-center md:justify-start gap-2 mt-2" id="role-badge-container">
-                    <!-- Badge diinject via JS -->
-                </div>
+                <div class="flex items-center gap-2 mt-2" id="role-badge-container"></div>
             </div>
             
-            <!-- Kanan Atas: Profil & Keluar -->
-            <div class="flex flex-row md:flex-col items-center md:items-end justify-center md:justify-end gap-3 md:gap-2 w-full md:w-auto" id="header-profile-section">
-                <button onclick="openBranchProfile()" class="flex-1 md:flex-none text-xs font-black text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors px-4 py-3 md:px-5 md:py-2.5 rounded-xl md:rounded-full uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm border border-orange-100 cursor-pointer">
-                    <i class="fa-solid fa-house-medical"></i> <span class="hidden sm:inline">PROFIL:</span> <span id="active-branch-label" class="truncate max-w-[120px]">-</span>
+            <div class="flex flex-col items-end gap-2" id="header-profile-section">
+                <button onclick="openBranchProfile()" class="text-xs font-black text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors px-5 py-2.5 rounded-full uppercase tracking-wider flex items-center gap-2 shadow-sm border border-orange-100 cursor-pointer">
+                    <i class="fa-solid fa-house-medical"></i> PROFIL: <span id="active-branch-label">-</span>
                 </button>
-                <button onclick="logout()" class="text-xs md:text-[10px] font-bold text-red-500 hover:text-red-700 bg-red-50 md:bg-transparent px-4 py-3 md:px-2 md:py-0 rounded-xl md:rounded-none flex items-center justify-center gap-1 uppercase tracking-wider cursor-pointer">
+                <button onclick="logout()" class="text-[10px] font-bold text-red-500 hover:text-red-700 flex items-center gap-1 uppercase tracking-wider px-2 cursor-pointer">
                     <i class="fa-solid fa-right-from-bracket"></i> Keluar
                 </button>
             </div>
         </div>
 
-        <!-- Branch Navigation / Info Lokasi -->
-        <div class="mb-5 md:mb-6 overflow-x-auto rounded-2xl" id="branch-nav-container"></div>
+        <div class="mb-6" id="branch-nav-container"></div>
 
-        <!-- Controls (Terisi & Riwayat) -->
-        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="w-full sm:w-auto flex justify-center sm:justify-start">
-                <div class="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 flex items-center gap-3 w-full sm:w-auto justify-center">
+        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 flex flex-col md:flex-row justify-start md:justify-end">
+            <div class="flex flex-wrap items-center justify-start md:justify-end gap-3 w-full">
+                <div class="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 flex items-center gap-3">
                     <div class="bg-orange-100 p-2 rounded-lg text-orange-600">
-                        <i class="fa-solid fa-bed text-lg"></i>
+                        <i class="fa-solid fa-bed"></i>
                     </div>
                     <div>
-                        <p class="text-[10px] text-slate-400 uppercase font-black tracking-wider text-center sm:text-left">Terisi</p>
-                        <div class="flex items-baseline justify-center sm:justify-start gap-1">
+                        <p class="text-[10px] text-slate-400 uppercase font-black tracking-wider">Terisi</p>
+                        <div class="flex items-baseline gap-1">
                             <p id="total-terisi" class="text-xl font-black text-slate-800 leading-none">0</p>
                             <span id="total-kamar" class="text-xs font-bold text-slate-400">/ 0</span>
                         </div>
                     </div>
                 </div>
+                <button onclick="openHistory()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition shadow-sm text-sm">
+                    <i class="fa-solid fa-history text-orange-500"></i> Riwayat
+                </button>
             </div>
-            <button onclick="openHistory()" class="w-full sm:w-auto bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-3 sm:py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 transition shadow-sm text-sm">
-                <i class="fa-solid fa-history text-orange-500"></i> Lihat Riwayat
-            </button>
         </div>
 
-        <!-- Grid Kamar -->
-        <div id="room-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pb-20"></div>
+        <div id="room-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </div>
 
-    <!-- SEMUA MODAL POP-UP DI BAWAH INI -->
-
     <!-- Modal Tambah Lokasi -->
-    <div id="add-location-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+    <div id="add-location-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h2 class="text-xl md:text-2xl font-black text-slate-800">Tambah Lokasi Baru</h2>
+                    <h2 class="text-2xl font-black text-slate-800">Tambah Lokasi Baru</h2>
                     <p class="text-xs text-orange-500 font-bold uppercase">Cabang Rumah Singgah</p>
                 </div>
-                <button onclick="closeModal('add-location-modal')" class="bg-slate-100 hover:bg-slate-200 w-8 h-8 flex items-center justify-center rounded-full transition">
+                <button onclick="closeModal('add-location-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition">
                     <i class="fa-solid fa-xmark text-slate-500"></i>
                 </button>
             </div>
@@ -157,7 +125,7 @@
                     <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Alamat Lengkap</label>
                     <textarea id="loc-alamat" required placeholder="Alamat lengkap lokasi..." rows="2" class="resize-none"></textarea>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Penanggung Jawab</label>
                         <input type="text" id="loc-pj" required placeholder="Nama PJ">
@@ -167,7 +135,7 @@
                         <input type="tel" id="loc-telp" required placeholder="08...">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Jumlah Kamar Awal</label>
                         <input type="number" id="loc-kamar" required min="1" max="50" value="5">
@@ -184,7 +152,7 @@
 
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mt-4">
                     <p class="text-[10px] font-black text-blue-800 uppercase tracking-wider mb-2"><i class="fa-solid fa-shield-halved mr-1"></i> Akses Login Cabang (Khusus Admin)</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="text-[10px] font-bold text-blue-600 block mb-1">Username Baru</label>
                             <input type="text" id="loc-username" placeholder="Username cabang" class="text-sm bg-white border-blue-200">
@@ -197,23 +165,23 @@
                     <p class="text-[9px] text-blue-500 mt-2">*Kosongkan jika ingin menggunakan default: <i>username (namacabang)</i> & <i>password (123)</i></p>
                 </div>
 
-                <div class="pt-4 flex flex-col sm:flex-row gap-3">
-                    <button type="button" onclick="closeModal('add-location-modal')" class="w-full sm:flex-1 bg-slate-100 text-slate-600 font-bold py-3 sm:py-4 rounded-2xl">Batal</button>
-                    <button type="submit" class="w-full sm:flex-1 bg-orange-600 text-white font-bold py-3 sm:py-4 rounded-2xl shadow-lg">Simpan Lokasi</button>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('add-location-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl">Batal</button>
+                    <button type="submit" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-2xl shadow-lg">Simpan Lokasi</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Modal Form (Registrasi/Edit Penghuni) -->
-    <div id="register-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+    <!-- Modal Form Registrasi -->
+    <div id="register-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div class="bg-white rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h2 id="register-room-title" class="text-xl md:text-2xl font-black text-slate-800">Data Penghuni</h2>
+                    <h2 id="register-room-title" class="text-2xl font-black text-slate-800">Data Penghuni</h2>
                     <p id="branch-form-info" class="text-xs text-orange-500 font-bold uppercase"></p>
                 </div>
-                <button onclick="closeModal('register-modal')" class="bg-slate-100 hover:bg-slate-200 w-8 h-8 flex items-center justify-center rounded-full">
+                <button onclick="closeModal('register-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full">
                     <i class="fa-solid fa-xmark text-slate-500"></i>
                 </button>
             </div>
@@ -225,28 +193,28 @@
                             <i class="fa-solid fa-user text-3xl"></i>
                         </div>
                     </div>
-                    <label class="cursor-pointer bg-white px-4 py-2 rounded-xl text-xs font-black text-orange-600 border border-orange-200 hover:bg-orange-50 transition shadow-sm">
+                    <label class="cursor-pointer bg-white px-4 py-2 rounded-xl text-xs font-black text-orange-600 border border-orange-200 hover:bg-orange-50 transition">
                         <i class="fa-solid fa-camera mr-2"></i> Pilih Foto Penghuni
                         <input type="file" id="reg-foto" accept="image/*" class="hidden" onchange="previewImage(this)">
                     </label>
                 </div>
 
-                <div class="grid grid-cols-1 gap-4">
+                <div class="grid grid-cols-1 gap-3">
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Nama Lengkap</label>
                         <input type="text" id="reg-nama" required placeholder="Nama lengkap pasien">
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">NIK</label>
-                            <input type="text" id="reg-nik" required placeholder="Nomor KTP" inputmode="numeric">
+                            <input type="text" id="reg-nik" required placeholder="Nomor KTP">
                         </div>
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">No. Telepon / WA</label>
-                            <input type="tel" id="reg-telp" required placeholder="08..." inputmode="tel">
+                            <input type="tel" id="reg-telp" required placeholder="08...">
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Asal Kota / Alamat</label>
                             <input type="text" id="reg-asal" required placeholder="Alamat / Kota asal">
@@ -256,7 +224,7 @@
                             <input type="date" id="reg-tglMasuk" required>
                         </div>
                     </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Rumah Sakit</label>
                             <input type="text" id="reg-rs" required placeholder="Nama RS">
@@ -272,84 +240,80 @@
                     </div>
                 </div>
                 
-                <div class="pt-4 flex flex-col sm:flex-row gap-3">
-                    <button type="button" onclick="closeModal('register-modal')" class="w-full sm:flex-1 bg-slate-100 text-slate-600 font-bold py-3 sm:py-4 rounded-2xl">Batal</button>
-                    <button type="submit" class="w-full sm:flex-1 bg-orange-600 text-white font-bold py-3 sm:py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2">
-                        <span>Simpan</span>
-                    </button>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('register-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl">Batal</button>
+                    <button type="submit" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-2xl shadow-lg">Simpan</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Riwayat -->
-    <div id="history-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-2 sm:p-4 z-50 backdrop-blur-sm">
-        <div class="bg-white rounded-[24px] sm:rounded-[32px] max-w-7xl w-full p-4 sm:p-8 shadow-2xl flex flex-col max-h-[95vh] sm:max-h-[90vh]">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4 sm:mb-6 w-full">
+    <div id="history-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-7xl w-full p-8 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-slate-800">Riwayat Pasien</h2>
-                    <p class="text-[10px] sm:text-xs text-slate-400">Arsip data pasien yang sudah check-out di cabang ini</p>
+                    <h2 class="text-2xl font-black text-slate-800">Riwayat Pasien</h2>
+                    <p class="text-xs text-slate-400">Arsip data pasien yang sudah check-out di cabang ini</p>
                 </div>
-                <div class="flex items-center gap-2 w-full sm:w-auto">
-                    <button id="btn-clear-history" onclick="clearHistory()" class="flex-1 sm:flex-none justify-center bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 transition shadow-sm hidden">
-                        <i class="fa-solid fa-trash-can"></i> <span class="hidden sm:inline">Hapus Semua</span>
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <button id="btn-clear-history" onclick="clearHistory()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 transition shadow-sm hidden">
+                        <i class="fa-solid fa-trash-can"></i> Hapus Semua
                     </button>
-                    <button onclick="exportHistoryExcel()" class="flex-1 sm:flex-none justify-center bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 transition shadow-md">
-                        <i class="fa-solid fa-file-excel"></i> <span class="hidden sm:inline">Eksport Excel</span>
+                    <button onclick="exportHistoryExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-5 rounded-xl flex items-center gap-2 transition shadow-md">
+                        <i class="fa-solid fa-file-excel"></i> Eksport Excel
                     </button>
-                    <button onclick="closeModal('history-modal')" class="bg-slate-100 hover:bg-slate-200 w-10 h-10 flex items-center justify-center rounded-xl sm:rounded-full transition"><i class="fa-solid fa-xmark"></i></button>
+                    <button onclick="closeModal('history-modal')" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full transition"><i class="fa-solid fa-xmark"></i></button>
                 </div>
             </div>
-            
-            <!-- Tabel Responsif yang bisa di-scroll secara horizontal di HP -->
-            <div class="flex-1 overflow-auto rounded-xl border border-slate-100 w-full relative">
-                <table class="w-full text-sm text-left border-collapse min-w-[800px]">
-                    <thead class="bg-slate-50 sticky top-0 z-10 shadow-sm">
+            <div class="flex-1 overflow-auto rounded-2xl border border-slate-100">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
                         <tr>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 whitespace-nowrap">Kamar</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 whitespace-nowrap">Foto</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Identitas & Kontak</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500">Kesehatan & RS</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 whitespace-nowrap">Periode & Durasi</th>
-                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 text-center admin-only-col hidden">Aksi</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Asal Kamar</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Foto</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Identitas & Kontak</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Kesehatan & RS</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Periode & Durasi</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500 text-center admin-only-col hidden">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody id="history-table-body" class="divide-y divide-slate-100 bg-white"></tbody>
+                    <tbody id="history-table-body" class="divide-y divide-slate-50 bg-white"></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <!-- Modal Profil Cabang -->
-    <div id="branch-profile-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-[55] backdrop-blur-sm">
+    <div id="branch-profile-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[55] backdrop-blur-sm">
         <div class="bg-white rounded-[32px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="relative w-full h-40 sm:h-48 bg-slate-100">
+            <div class="relative w-full h-48 bg-slate-100">
                 <img id="profile-foto" src="https://placehold.co/600x400/f1f5f9/94a3b8?text=Foto+Rumah+Singgah" class="w-full h-full object-cover" alt="Foto Cabang">
-                <button onclick="closeModal('branch-profile-modal')" class="absolute top-4 right-4 bg-white/80 hover:bg-white backdrop-blur shadow-sm w-8 h-8 flex items-center justify-center rounded-full transition text-slate-600">
+                <button onclick="closeModal('branch-profile-modal')" class="absolute top-4 right-4 bg-white/80 hover:bg-white backdrop-blur shadow-sm p-2 rounded-full transition text-slate-600">
                     <i class="fa-solid fa-xmark"></i>
                 </button>
-                <div class="absolute -bottom-6 left-6 sm:left-8 bg-orange-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl shadow-lg border-4 border-white">
+                <div class="absolute -bottom-6 left-8 bg-orange-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl shadow-lg border-4 border-white">
                     <i class="fa-solid fa-building-user text-xl"></i>
                 </div>
             </div>
             
-            <div class="pt-10 p-6 sm:p-8 overflow-y-auto">
-                <div class="flex flex-wrap justify-between items-start gap-4 mb-6">
-                    <div class="flex-1">
-                        <p class="text-[10px] sm:text-xs text-orange-500 font-bold uppercase tracking-wider mb-1">Lokasi / Cabang</p>
-                        <h2 id="profile-kota" class="text-xl sm:text-2xl font-black text-slate-800 break-words">Nama Kota</h2>
+            <div class="pt-10 p-8 overflow-y-auto">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-xs text-orange-500 font-bold uppercase tracking-wider mb-1">Lokasi / Cabang</p>
+                        <h2 id="profile-kota" class="text-2xl font-black text-slate-800">Nama Kota</h2>
                     </div>
-                    <button onclick="openEditBranchProfile()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-4 rounded-xl transition flex items-center gap-2 whitespace-nowrap">
+                    <button onclick="openEditBranchProfile()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-4 rounded-xl transition flex items-center gap-2">
                         <i class="fa-solid fa-pen-to-square"></i> Edit
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
                     <div class="col-span-full">
                         <p class="text-[10px] font-black text-slate-400 uppercase mb-1"><i class="fa-solid fa-map-location-dot mr-1"></i> Alamat Lengkap</p>
                         <p id="profile-alamat" class="text-sm font-medium text-slate-700 leading-relaxed">-</p>
-                        <a id="profile-map" href="#" target="_blank" class="inline-flex items-center gap-2 mt-2 text-[10px] sm:text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition hidden">
-                            <i class="fa-solid fa-location-arrow"></i> Buka di Maps
+                        <a id="profile-map" href="#" target="_blank" class="inline-flex items-center gap-2 mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition hidden">
+                            <i class="fa-solid fa-location-arrow"></i> Buka di Google Maps
                         </a>
                     </div>
                     
@@ -361,14 +325,14 @@
                     <div>
                         <p class="text-[10px] font-black text-slate-400 uppercase mb-1"><i class="fa-solid fa-calendar-check mr-1"></i> Periode Kontrak</p>
                         <p class="text-sm font-medium text-slate-700">
-                            <span id="profile-awal" class="text-emerald-600 font-bold">-</span> s/d <br class="sm:hidden"> <span id="profile-akhir" class="text-red-500 font-bold">-</span>
+                            <span id="profile-awal" class="text-emerald-600 font-bold">-</span> s/d <span id="profile-akhir" class="text-red-500 font-bold">-</span>
                         </p>
                     </div>
 
                     <div class="bg-slate-50 p-4 rounded-2xl col-span-full flex flex-col sm:flex-row gap-4 border border-slate-100">
                         <div class="flex-1">
                             <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Penanggung Jawab (PJ)</p>
-                            <p id="profile-pj" class="text-sm font-bold text-slate-800 break-words">-</p>
+                            <p id="profile-pj" class="text-sm font-bold text-slate-800">-</p>
                         </div>
                         <div class="flex-1">
                             <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Contact Person</p>
@@ -381,14 +345,14 @@
     </div>
 
     <!-- Modal Edit Profil Cabang -->
-    <div id="edit-branch-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-[60] backdrop-blur-sm">
-        <div class="bg-white rounded-[32px] max-w-lg w-full p-6 sm:p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+    <div id="edit-branch-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[60] backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h2 class="text-xl sm:text-2xl font-black text-slate-800">Edit Profil Cabang</h2>
-                    <p class="text-[10px] sm:text-xs text-orange-500 font-bold uppercase">Lengkapi Informasi Lokasi</p>
+                    <h2 class="text-2xl font-black text-slate-800">Edit Profil Cabang</h2>
+                    <p class="text-xs text-orange-500 font-bold uppercase">Lengkapi Informasi Lokasi</p>
                 </div>
-                <button onclick="closeModal('edit-branch-modal')" class="bg-slate-100 hover:bg-slate-200 w-8 h-8 flex items-center justify-center rounded-full transition">
+                <button onclick="closeModal('edit-branch-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition">
                     <i class="fa-solid fa-xmark text-slate-500"></i>
                 </button>
             </div>
@@ -396,8 +360,8 @@
                 <div class="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
                     <div id="edit-branch-foto-preview" class="w-full h-32 bg-slate-100 rounded-xl overflow-hidden mb-3 border border-slate-200">
                     </div>
-                    <label class="cursor-pointer bg-white px-4 py-2 rounded-xl text-xs font-black text-orange-600 border border-orange-200 hover:bg-orange-50 transition shadow-sm text-center">
-                        <i class="fa-solid fa-camera mr-1"></i> Unggah Foto Cabang
+                    <label class="cursor-pointer bg-white px-4 py-2 rounded-xl text-xs font-black text-orange-600 border border-orange-200 hover:bg-orange-50 transition">
+                        <i class="fa-solid fa-camera mr-2"></i> Unggah Foto Cabang
                         <input type="file" accept="image/*" class="hidden" onchange="previewBranchImage(this)">
                     </label>
                 </div>
@@ -410,7 +374,7 @@
                     <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Link Google Maps (URL)</label>
                     <input type="url" id="edit-branch-map" placeholder="https://maps.app.goo.gl/...">
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Penanggung Jawab</label>
                         <input type="text" id="edit-branch-pj" required placeholder="Nama PJ">
@@ -420,7 +384,7 @@
                         <input type="tel" id="edit-branch-telp" required placeholder="08...">
                     </div>
                 </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                         <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Awal Kontrak</label>
                         <input type="date" id="edit-branch-awal">
@@ -431,13 +395,12 @@
                     </div>
                 </div>
 
-                <!-- Admin Only Settings in Branch Edit -->
                 <div id="admin-credentials-section" class="bg-blue-50 border border-blue-100 p-4 rounded-xl mt-6 hidden">
                     <p class="text-[10px] font-black text-blue-800 uppercase tracking-wider mb-2"><i class="fa-solid fa-shield-halved mr-1"></i> Akses Login Cabang (Hanya Terlihat Oleh Admin Pusat)</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div>
                             <label class="text-[10px] font-bold text-blue-600 block mb-1">Ubah Username</label>
-                            <input type="text" id="edit-branch-username" placeholder="Username login" class="text-sm bg-white border-blue-200" autocapitalize="none">
+                            <input type="text" id="edit-branch-username" placeholder="Username login" class="text-sm bg-white border-blue-200">
                         </div>
                         <div>
                             <label class="text-[10px] font-bold text-blue-600 block mb-1">Ubah Password</label>
@@ -446,32 +409,30 @@
                     </div>
                 </div>
 
-                <div class="pt-4 flex flex-col sm:flex-row gap-3">
-                    <button type="button" onclick="closeModal('edit-branch-modal')" class="w-full sm:flex-1 bg-slate-100 text-slate-600 font-bold py-3 sm:py-4 rounded-2xl">Batal</button>
-                    <button type="submit" class="w-full sm:flex-1 bg-orange-600 text-white font-bold py-3 sm:py-4 rounded-2xl shadow-lg flex justify-center items-center gap-2">
-                        <span>Simpan Perubahan</span>
-                    </button>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('edit-branch-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl">Batal</button>
+                    <button type="submit" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-2xl shadow-lg">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Pengaturan Admin Pusat -->
-    <div id="admin-settings-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-[70] backdrop-blur-sm">
-        <div class="bg-white rounded-[32px] max-w-sm w-full p-6 sm:p-8 shadow-2xl">
+    <div id="admin-settings-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[70] backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-sm w-full p-8 shadow-2xl">
             <div class="flex justify-between items-start mb-6">
                 <div>
                     <h2 class="text-xl font-black text-slate-800">Pengaturan Pusat</h2>
                     <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Ubah Kredensial Login</p>
                 </div>
-                <button onclick="closeModal('admin-settings-modal')" class="bg-slate-100 hover:bg-slate-200 w-8 h-8 flex items-center justify-center rounded-full transition">
+                <button onclick="closeModal('admin-settings-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition">
                     <i class="fa-solid fa-xmark text-slate-500"></i>
                 </button>
             </div>
             <form id="admin-settings-form" class="space-y-4">
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Username Pusat</label>
-                    <input type="text" id="admin-username-input" required class="bg-slate-50 text-sm" autocapitalize="none">
+                    <input type="text" id="admin-username-input" required class="bg-slate-50 text-sm">
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Password Pusat</label>
@@ -482,34 +443,31 @@
                         </button>
                     </div>
                 </div>
-                <div class="pt-4 flex flex-col sm:flex-row gap-3">
-                    <button type="button" onclick="closeModal('admin-settings-modal')" class="w-full sm:flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl text-sm">Batal</button>
-                    <button type="submit" class="w-full sm:flex-1 bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg text-sm">Simpan</button>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('admin-settings-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl text-sm">Batal</button>
+                    <button type="submit" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg text-sm">Simpan</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Confirm Universal -->
-    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/80 hidden items-center justify-center p-4 z-[80] backdrop-blur-sm">
-        <div class="bg-white rounded-[24px] md:rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center">
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[80] backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
             <h3 id="confirm-title" class="text-xl font-black text-slate-800 mb-2">Konfirmasi</h3>
             <p id="confirm-message" class="text-sm text-slate-500 mb-6">Apakah Anda yakin?</p>
             <div class="flex gap-3">
-                <button onclick="closeModal('confirm-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3.5 sm:py-3 rounded-xl hover:bg-slate-200 transition">Batal</button>
-                <button id="confirm-action-btn" class="flex-1 bg-red-600 text-white font-bold py-3.5 sm:py-3 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-600/30">Ya, Lanjut</button>
+                <button onclick="closeModal('confirm-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Batal</button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-600/30">Ya, Lanjutkan</button>
             </div>
         </div>
     </div>
 
     <!-- CORE SCRIPT -->
     <script>
-        // =========================================================
-        // PENGEMBALIAN CACHE LOKAL (ANTI ERROR / OFFLINE-FIRST)
-        // =========================================================
         let adminCreds = { username: 'admin', password: 'admin' };
         try {
             const storedAdmin = JSON.parse(localStorage.getItem('rskd_admin_creds'));
@@ -540,163 +498,16 @@
             if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
         });
 
-        // =========================================================
-        // KONFIGURASI DATABASE REALTIME (FIREBASE)
-        // =========================================================
-        const GITHUB_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYjvkIYyNso",
-            authDomain: "database-rumsing-erzet.firebaseapp.com",
-            projectId: "database-rumsing-erzet",
-            storageBucket: "database-rumsing-erzet.firebasestorage.app",
-            messagingSenderId: "181345777217",
-            appId: "1:181345777217:web:f0c2a733922aab5e01b8c0",
-            measurementId: "G-TKM3H0BLND"
-        };
-
-        const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config
-            ? JSON.parse(__firebase_config) 
-            : GITHUB_FIREBASE_CONFIG;
-
-        let isCloudSyncActive = false;
-        let db, auth, firestoreApi;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
-
-        function setSyncStatus(status, message) {
-            const ind = document.getElementById('sync-indicator');
-            const icon = document.getElementById('sync-icon');
-            const txt = document.getElementById('sync-text');
-            const loginBtn = document.getElementById('login-btn'); // Tangkap tombol login
-
-            ind.classList.remove('hidden');
-            
-            if(status === 'success') {
-                icon.className = 'fa-solid fa-cloud text-emerald-500';
-                txt.innerText = message || 'Live Sync Aktif';
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'LOGIN'; }
-            } else if (status === 'error') {
-                icon.className = 'fa-solid fa-triangle-exclamation text-red-500';
-                txt.innerText = message || 'Sync Gagal';
-                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'LOGIN (OFFLINE MODE)'; }
-            } else {
-                icon.className = 'fa-solid fa-circle-notch fa-spin text-blue-500';
-                txt.innerText = 'Menghubungkan...';
-                if(loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SINKRONISASI SERVER...'; }
-            }
-        }
-
-        // =========================================================
-        // INIT FIREBASE
-        // =========================================================
-        if (firebaseConfig.apiKey) {
-            setSyncStatus('loading');
-            Promise.all([
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
-            ]).then(async ([appModule, authModule, firestoreModule]) => {
-                const app = appModule.initializeApp(firebaseConfig);
-                auth = authModule.getAuth(app);
-                db = firestoreModule.getFirestore(app);
-                firestoreApi = firestoreModule;
-
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await authModule.signInWithCustomToken(auth, __initial_auth_token);
-                    } else {
-                        await authModule.signInAnonymously(auth);
-                    }
-                    isCloudSyncActive = true;
-                    listenToCloud();
-                } catch (e) {
-                    console.error("Firebase Auth Error:", e);
-                    setSyncStatus('error', 'Auth Gagal: ' + e.code);
-                }
-            }).catch(e => {
-                setSyncStatus('error', 'Gagal memuat Firebase');
-            });
-        }
-
-        // =========================================================
-        // SINKRONISASI CLOUD LOGIC
-        // =========================================================
-        function listenToCloud() {
-            if (!auth.currentUser || !firestoreApi) return;
-            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            
-            firestoreApi.onSnapshot(docRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.data();
-                    if (data.payload) {
-                        try {
-                            const parsed = JSON.parse(data.payload);
-                            if (parsed.branches && parsed.branches.length > 0) savedBranches = parsed.branches;
-                            if (parsed.branchData && Object.keys(parsed.branchData).length > 0) allBranchData = parsed.branchData;
-                            if (parsed.adminCreds && parsed.adminCreds.username) adminCreds = parsed.adminCreds;
-                            
-                            localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
-                            localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
-                            localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
-
-                            setSyncStatus('success', 'Live Sync Aktif');
-
-                            if (checkAuth()) {
-                                if (!savedBranches.includes(currentBranch)) currentBranch = savedBranches[0] || "";
-                                renderBranchNav();
-                                renderRooms();
-                            }
-                        } catch(e) {}
-                    }
-                } else {
-                    saveDataToCloud(); 
-                }
-            }, (error) => {
-                setSyncStatus('error', 'Akses Ditolak (Cek Aturan Firestore)');
-            });
-        }
-
-        function saveDataToCloud() {
-            if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
-            
-            // PROTEKSI LIMIT 1MB FIRESTORE: Hapus data base64 foto mentah yang terlanjur tersimpan di lokal (legacy)
-            let safeBranchData = JSON.parse(JSON.stringify(allBranchData));
-            for (let branch in safeBranchData) {
-                if(safeBranchData[branch].rooms) {
-                    safeBranchData[branch].rooms.forEach(r => { 
-                        if(r.foto && r.foto.length > 20000 && !r.foto.startsWith('http')) r.foto = null; 
-                    });
-                }
-                if(safeBranchData[branch].history) {
-                    safeBranchData[branch].history.forEach(h => { 
-                        if(h.foto && h.foto.length > 20000 && !h.foto.startsWith('http')) h.foto = null; 
-                    });
-                }
-                if(safeBranchData[branch].info && safeBranchData[branch].info.foto && safeBranchData[branch].info.foto.length > 20000 && !safeBranchData[branch].info.foto.startsWith('http')) {
-                    safeBranchData[branch].info.foto = null;
-                }
-            }
-
-            const payload = JSON.stringify({ branches: savedBranches, branchData: safeBranchData, adminCreds: adminCreds });
-            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            
-            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => { 
-                console.error("Firebase sync error:", e);
-                setSyncStatus('error', 'Gagal Menyimpan ke Cloud (Data Kepenuhan)'); 
-            });
-        }
-
         function saveData() {
             localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
             localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
             localStorage.setItem('rskd_active_branch', currentBranch);
+            
             renderBranchNav();
             renderRooms();
-            saveDataToCloud();
         }
 
-        // =========================================================
-        // LOGIKA OTENTIKASI
-        // =========================================================
         function handleLogin(e) {
             e.preventDefault();
             const errBox = document.getElementById('login-error-msg');
@@ -718,10 +529,13 @@
                         let info = allBranchData[branch]?.info || {};
                         let branchUser = info.username || branch.toLowerCase().replace(/\s/g, '');
                         let branchPass = info.password || '123';
+                        
                         if (rawUser.toLowerCase() === branchUser.toLowerCase() && pass === branchPass) {
-                            matchedBranch = branch; break;
+                            matchedBranch = branch;
+                            break;
                         }
                     }
+                    
                     if(matchedBranch) {
                         currentUser = { role: 'cabang', name: `Admin ${matchedBranch}`, branch: matchedBranch };
                         currentBranch = matchedBranch;
@@ -734,8 +548,12 @@
                 }
 
                 try { sessionStorage.setItem('rskd_user', JSON.stringify(currentUser)); } catch (e) {}
+                
                 document.getElementById('login-form').reset();
-                if (checkAuth()) { renderBranchNav(); renderRooms(); }
+                if (checkAuth()) {
+                    renderBranchNav();
+                    renderRooms();
+                }
             } catch (error) {
                 errBox.innerText = "Terjadi kesalahan sistem saat memproses login.";
                 errBox.classList.remove('hidden');
@@ -773,6 +591,7 @@
                 
                 document.getElementById('btn-clear-history').classList.add('hidden');
                 document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+                
                 currentBranch = currentUser.branch; 
             }
             
@@ -782,9 +601,6 @@
             return true;
         }
 
-        // =========================================================
-        // CORE FUNCTIONS
-        // =========================================================
         function initBranchData(branchName, initialRooms, alamat, pj, telp, awal="", akhir="", username="", password="") {
             allBranchData[branchName] = {
                 info: { 
@@ -808,12 +624,12 @@
             
             if (currentUser && currentUser.role === 'admin') {
                 const nav = document.createElement('div');
-                nav.className = 'flex overflow-x-auto pb-4 gap-3 items-center snap-x snap-mandatory'; // Tambah snap untuk mobile scroll
+                nav.className = 'flex overflow-x-auto pb-2 gap-2 items-center';
                 
                 savedBranches.forEach(branch => {
                     const isActive = branch === currentBranch;
                     const btnContainer = document.createElement('div');
-                    btnContainer.className = `snap-start shrink-0 flex items-center rounded-xl md:rounded-2xl transition border ${isActive ? 'bg-orange-600 border-orange-600 shadow-md shadow-orange-600/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
+                    btnContainer.className = `flex items-center rounded-2xl transition border ${isActive ? 'bg-orange-600 border-orange-600 shadow-md shadow-orange-600/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
 
                     const btn = document.createElement('button');
                     btn.onclick = () => { 
@@ -823,12 +639,12 @@
                         renderBranchNav();
                         renderRooms(); 
                     };
-                    btn.className = `whitespace-nowrap pl-4 pr-2 py-2.5 md:py-3 font-black text-xs outline-none ${isActive ? 'text-white' : 'text-slate-500'}`;
+                    btn.className = `whitespace-nowrap pl-5 pr-2 py-3 font-black text-xs outline-none ${isActive ? 'text-white' : 'text-slate-500'}`;
                     btn.innerText = branch;
 
                     const delBtn = document.createElement('button');
                     delBtn.onclick = (e) => { e.stopPropagation(); deleteBranch(branch); };
-                    delBtn.className = `px-3 py-2.5 md:py-3 text-xs transition-colors rounded-r-xl md:rounded-r-2xl outline-none ${isActive ? 'text-orange-200 hover:text-white hover:bg-orange-700' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`;
+                    delBtn.className = `px-4 py-3 text-xs transition-colors rounded-r-2xl outline-none ${isActive ? 'text-orange-200 hover:text-white hover:bg-orange-700' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`;
                     delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
 
                     btnContainer.appendChild(btn);
@@ -838,13 +654,13 @@
 
                 const addBtn = document.createElement('button');
                 addBtn.onclick = () => { document.getElementById('add-location-modal').classList.replace('hidden', 'flex'); };
-                addBtn.className = `snap-start shrink-0 whitespace-nowrap px-4 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-black text-xs transition border-2 border-dashed border-slate-300 text-slate-500 bg-white hover:bg-slate-50 hover:border-orange-500 hover:text-orange-600 flex items-center gap-2 ml-1`;
+                addBtn.className = `whitespace-nowrap px-5 py-3 rounded-2xl font-black text-xs transition border-2 border-dashed border-slate-300 text-slate-500 bg-white hover:bg-slate-50 hover:border-orange-500 hover:text-orange-600 flex items-center gap-2 ml-2`;
                 addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Tambah Lokasi';
                 
                 const addRoomBtn = document.createElement('button');
                 addRoomBtn.onclick = () => { addRoom(); };
-                addRoomBtn.className = `snap-start shrink-0 whitespace-nowrap px-3 py-2.5 md:py-3 rounded-xl md:rounded-2xl font-black text-xs transition border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-2 ml-auto shadow-sm`;
-                addRoomBtn.innerHTML = '<i class="fa-solid fa-plus"></i> <span class="hidden sm:inline">Kamar</span>';
+                addRoomBtn.className = `whitespace-nowrap px-4 py-3 rounded-2xl font-black text-xs transition border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-2 ml-auto shadow-sm`;
+                addRoomBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Kamar';
 
                 nav.appendChild(addBtn);
                 nav.appendChild(addRoomBtn);
@@ -861,8 +677,8 @@
                 banner.className = 'flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm';
                 banner.innerHTML = `
                     <div class="flex items-start gap-3 text-slate-600 w-full">
-                        <div class="text-orange-500 mt-0.5"><i class="fa-solid fa-map-location-dot text-lg"></i></div>
-                        <p class="text-xs sm:text-sm font-medium leading-relaxed">${alamatStr}</p>
+                        <div class="text-orange-500 mt-0.5"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <p class="text-sm font-medium leading-relaxed">${alamatStr}</p>
                     </div>
                 `;
                 container.appendChild(banner);
@@ -931,7 +747,7 @@
             grid.innerHTML = '';
             
             if(!currentBranch || !allBranchData[currentBranch] || !allBranchData[currentBranch].rooms) {
-                grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-medium text-sm">Belum ada lokasi aktif.</div>';
+                grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-medium">Belum ada lokasi aktif.</div>';
                 document.getElementById('total-terisi').innerText = '0';
                 document.getElementById('total-kamar').innerText = '/ 0';
                 return;
@@ -945,23 +761,15 @@
                 if (isTerisi) terisiCount++;
 
                 const card = document.createElement('div');
-                card.className = `room-card bg-white group relative shadow-sm border-slate-200/60`;
+                card.className = `room-card bg-white group relative`;
                 const deleteBtn = `
-                    <button onclick="event.stopPropagation(); deleteRoom(${room.id})" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center text-slate-400 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                    <button onclick="event.stopPropagation(); deleteRoom(${room.id})" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100">
                         <i class="fa-solid fa-trash-can text-xs"></i>
                     </button>`;
 
                 if (isTerisi) {
-                    let avatar = `<div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-2xl md:text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
-                    if (room.foto) {
-                        if (room.foto.startsWith('http')) {
-                            // Link resmi dari Google Drive, gunakan tag <a>
-                            avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
-                        } else {
-                            // Masih berwujud Base64 (sementara)
-                            avatar = `<img src="${room.foto}" class="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
-                        }
-                    }
+                    let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
+                    if (room.foto) avatar = `<img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
 
                     card.innerHTML = `
                         ${deleteBtn}
@@ -969,9 +777,9 @@
                             <div class="absolute top-3 left-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-white">${room.no}</div>
                             ${avatar}
                         </div>
-                        <div class="p-4 md:p-5 space-y-4">
+                        <div class="p-5 space-y-4">
                             <div class="cursor-pointer" onclick="editRoom(${room.id})">
-                                <h3 class="font-black text-slate-800 text-sm md:text-base line-clamp-1">${room.penghuni}</h3>
+                                <h3 class="font-black text-slate-800 line-clamp-1">${room.penghuni}</h3>
                                 <div class="flex items-center gap-1 text-[10px] text-orange-600 font-bold uppercase mt-1">
                                     <i class="fa-solid fa-hospital text-[8px]"></i>
                                     <span class="truncate">${room.rs || 'RS belum diisi'}</span>
@@ -983,21 +791,21 @@
                                     <span class="font-bold text-slate-700 bg-orange-50 px-2 py-0.5 rounded text-orange-600">${formatDurasi(room.tglMasuk)}</span>
                                 </div>
                             </div>
-                            <button onclick="processCheckout(${room.id})" class="w-full bg-slate-900 text-white py-3 md:py-2 rounded-xl text-xs font-bold hover:bg-red-600 transition-colors">Check-out</button>
+                            <button onclick="processCheckout(${room.id})" class="w-full bg-slate-900 text-white py-2 rounded-xl text-xs font-bold hover:bg-red-600 transition-colors">Check-out</button>
                         </div>
                     `;
                 } else {
                     card.innerHTML = `
                         ${deleteBtn}
-                        <div class="p-6 md:p-8 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[240px] md:min-h-[280px]">
-                            <div class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-2">
-                                <i class="fa-solid fa-bed text-xl md:text-2xl"></i>
+                        <div class="p-8 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[280px]">
+                            <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-2">
+                                <i class="fa-solid fa-bed text-2xl"></i>
                             </div>
                             <div>
-                                <div class="text-[10px] md:text-xs font-black text-slate-400 uppercase">${room.no}</div>
-                                <div class="text-xs md:text-sm font-bold text-slate-300">Kosong</div>
+                                <div class="text-xs font-black text-slate-400 uppercase">${room.no}</div>
+                                <div class="text-sm font-bold text-slate-300">Kosong</div>
                             </div>
-                            <button onclick="openRegister(${room.id})" class="bg-slate-900 text-white px-5 py-3 md:px-6 md:py-3 rounded-xl text-xs md:text-sm font-black hover:bg-orange-600 transition-colors w-full flex justify-center items-center gap-2 mt-auto">
+                            <button onclick="openRegister(${room.id})" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-black hover:bg-orange-600 transition-colors w-full flex justify-center items-center gap-2 mt-auto">
                                 <i class="fa-solid fa-plus"></i> Isi Kamar
                             </button>
                         </div>
@@ -1022,7 +830,6 @@
             return `${diffDays} Hari`;
         }
 
-        // FUNGSI KOMPRESI EKSTREM (SANGAT CEPAT UNTUK WEB)
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -1048,7 +855,7 @@
                         ctx.drawImage(img, 0, 0, width, height);
                         
                         currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
-                        document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500 shadow-sm">`;
+                        document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
                     }
                     img.src = e.target.result;
                 };
@@ -1081,7 +888,7 @@
             document.getElementById('reg-rs').value = room.rs || "";
             
             if (room.foto) {
-                document.getElementById('photo-preview-container').innerHTML = `<img src="${room.foto}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500 shadow-sm">`;
+                document.getElementById('photo-preview-container').innerHTML = `<img src="${room.foto}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
             } else {
                 document.getElementById('photo-preview-container').innerHTML = `<div class="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-3xl"></i></div>`;
             }
@@ -1090,7 +897,6 @@
             document.getElementById('register-modal').classList.replace('hidden', 'flex');
         }
 
-        // MASUKKAN URL GOOGLE APPS SCRIPT ANDA DI SINI
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBiwfg7G-kFzhrWQZnz0ld244GqiY3DDdBYAna-YevxvNTxCRLWqPofkfQ4AA9l8fY7A/exec';
 
         document.getElementById('register-form').onsubmit = async (e) => {
@@ -1101,81 +907,31 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             submitBtn.disabled = true;
 
-            try {
-                const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
-                const newData = {
-                    penghuni: document.getElementById('reg-nama').value,
-                    nik: document.getElementById('reg-nik').value,
-                    telp: document.getElementById('reg-telp').value,
-                    asal: document.getElementById('reg-asal').value,
-                    tglMasuk: document.getElementById('reg-tglMasuk').value,
-                    diagnosa: document.getElementById('reg-diagnosa').value,
-                    dokter: document.getElementById('reg-dokter').value,
-                    rs: document.getElementById('reg-rs').value,
-                };
+            const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
+            const newData = {
+                penghuni: document.getElementById('reg-nama').value,
+                nik: document.getElementById('reg-nik').value,
+                telp: document.getElementById('reg-telp').value,
+                asal: document.getElementById('reg-asal').value,
+                tglMasuk: document.getElementById('reg-tglMasuk').value,
+                diagnosa: document.getElementById('reg-diagnosa').value,
+                dokter: document.getElementById('reg-dokter').value,
+                rs: document.getElementById('reg-rs').value,
+            };
 
-                let finalPhotoUrl = currentPhotoBase64;
-                let gasAlertMessage = null;
-
-                // Kirim Gambar ke Google Drive via Apps Script
-                if (APPS_SCRIPT_URL) {
-                    const payload = new URLSearchParams({ 
-                        type: 'checkin', 
-                        cabang: currentBranch, 
-                        kamar: allBranchData[currentBranch].rooms[idx].no, 
-                        foto: currentPhotoBase64 || "", 
-                        ...newData 
-                    });
-                    
-                    try {
-                        const response = await fetch(APPS_SCRIPT_URL, { 
-                            method: 'POST', 
-                            body: payload 
-                        });
-                        
-                        const textResponse = await response.text();
-                        try {
-                            const result = JSON.parse(textResponse);
-                            if (result.status === 'success') {
-                                if (result.url && result.url.startsWith('http')) {
-                                    finalPhotoUrl = result.url; // Sukses link Google Drive
-                                }
-                            } else {
-                                gasAlertMessage = result.message || "Gagal merekam di Spreadsheet";
-                            }
-                        } catch (e) {
-                            gasAlertMessage = "Format respons Apps Script tidak valid. Cek izin Drive.";
-                            if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
-                                finalPhotoUrl = null; // Gagalkan base64 masuk agar DB tidak overload
-                            }
-                        }
-                    } catch (error) {
-                        gasAlertMessage = "Jaringan ke Google Spreadsheet bermasalah.";
-                        if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
-                            finalPhotoUrl = null; // Gagalkan base64 masuk agar DB tidak overload
-                        }
-                    }
-                }
-
-                // APAPUN YANG TERJADI (Spreadsheet Sukses/Gagal), Simpan Data di Dashboard (Firebase)!
-                allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
-                saveData();
-                closeModal('register-modal');
-
-                // Jika Spreadsheet Error, Tetap Tampilkan Info Tanpa Bikin Macet Dashboard
-                if (gasAlertMessage) {
-                    setTimeout(() => {
-                        showConfirm("Info Spreadsheet", "Data pasien tersimpan di Aplikasi/Dasbor, namun ada kendala di Google Spreadsheet: \n\n" + gasAlertMessage, null, true);
-                    }, 500);
-                }
-
-            } catch (err) {
-                console.error(err);
-                showConfirm("Error", "Terjadi kesalahan sistem saat menyimpan data.", null, true);
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+            if (APPS_SCRIPT_URL) {
+                try {
+                    const payload = new URLSearchParams({ type: 'checkin', cabang: currentBranch, kamar: allBranchData[currentBranch].rooms[idx].no, ...newData, foto: currentPhotoBase64 || "" });
+                    fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
+                } catch (error) {}
             }
+
+            allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: currentPhotoBase64 };
+            saveData();
+            closeModal('register-modal');
+            
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         };
 
         function processCheckout(id) {
@@ -1200,27 +956,24 @@
             });
         }
 
-        // =========================================================
-        // MANAJEMEN RIWAYAT & LAINNYA
-        // =========================================================
         function openHistory() {
             const tbody = document.getElementById('history-table-body');
             tbody.innerHTML = '';
             const historyData = allBranchData[currentBranch]?.history || [];
 
             if(historyData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-4 md:px-6 py-10 text-center text-slate-400 font-medium text-sm">Belum ada riwayat check-out di cabang ini.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-slate-400 font-medium">Belum ada riwayat check-out di cabang ini.</td></tr>`;
             } else {
                 historyData.forEach((data, index) => {
                     const row = document.createElement('tr');
-                    let deleteBtnHtml = (currentUser && currentUser.role === 'admin') ? `<td class="px-4 py-4 text-center admin-only-col"><button onclick="deleteHistoryItem(${index})" class="text-slate-300 hover:text-red-600 transition-colors p-2 bg-slate-50 hover:bg-red-50 rounded-xl"><i class="fa-solid fa-trash-can"></i></button></td>` : '';
+                    let deleteBtnHtml = (currentUser && currentUser.role === 'admin') ? `<td class="px-6 py-4 text-center admin-only-col"><button onclick="deleteHistoryItem(${index})" class="text-slate-300 hover:text-red-600 transition-colors"><i class="fa-solid fa-trash-can"></i></button></td>` : '';
 
                     row.innerHTML = `
-                        <td class="px-4 py-4"><span class="bg-slate-100 px-2.5 py-1.5 rounded-lg text-[10px] font-black">${data.no}</span></td>
-                        <td class="px-4 py-4">${data.foto ? `<img src="${data.foto}" class="w-10 h-10 md:w-12 md:h-12 rounded-full object-cover">` : `<div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user"></i></div>`}</td>
-                        <td class="px-4 py-4 min-w-[150px]"><div class="font-bold text-slate-800 text-xs md:text-sm">${data.penghuni}</div><div class="text-[9px] md:text-[10px] text-slate-400 mt-0.5">NIK: ${data.nik || '-'}</div></td>
-                        <td class="px-4 py-4 min-w-[150px]"><div class="text-[11px] md:text-xs font-medium text-slate-600">${data.diagnosa || '-'}</div><div class="text-[9px] md:text-[10px] text-orange-500 font-bold uppercase mt-1 flex items-center gap-1"><i class="fa-solid fa-hospital"></i> ${data.rs || '-'}</div></td>
-                        <td class="px-4 py-4 text-[9px] md:text-[10px] min-w-[140px]"><div class="flex gap-2 items-center"><span class="text-slate-400 w-6">In:</span> <span class="font-medium text-slate-700 bg-slate-50 px-1 rounded">${data.tglMasuk}</span></div><div class="flex gap-2 mt-1 items-center"><span class="text-slate-400 w-6">Out:</span> <span class="font-medium text-slate-700 bg-slate-50 px-1 rounded">${data.tglKeluar}</span></div><div class="font-black text-orange-600 mt-2 text-xs">${data.durasi}</div></td>
+                        <td class="px-6 py-4"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-black">${data.no}</span></td>
+                        <td class="px-6 py-4">${data.foto ? `<img src="${data.foto}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user"></i></div>`}</td>
+                        <td class="px-6 py-4"><div class="font-bold text-slate-800">${data.penghuni}</div><div class="text-[10px] text-slate-400">NIK: ${data.nik || '-'}</div></td>
+                        <td class="px-6 py-4"><div class="text-xs font-medium">${data.diagnosa || '-'}</div><div class="text-[10px] text-orange-500 font-bold uppercase mt-0.5">${data.rs || '-'}</div></td>
+                        <td class="px-6 py-4 text-[10px]"><div class="flex gap-2"><span class="text-slate-400 w-6">In:</span> <span class="font-medium text-slate-700">${data.tglMasuk}</span></div><div class="flex gap-2"><span class="text-slate-400 w-6">Out:</span> <span class="font-medium text-slate-700">${data.tglKeluar}</span></div><div class="font-black text-orange-600 mt-1">${data.durasi}</div></td>
                         ${deleteBtnHtml}
                     `;
                     tbody.appendChild(row);
@@ -1327,63 +1080,25 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             submitBtn.disabled = true;
 
-            try {
-                let finalBranchPhoto = currentBranchPhotoBase64;
-                let gasAlertMessage = null;
-
-                if (APPS_SCRIPT_URL && currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
-                    const payload = newSearchParams({ 
-                        type: 'upload_branch_photo', 
-                        cabang: currentBranch,
-                        foto: currentBranchPhotoBase64
-                    });
-                    try {
-                        const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload });
-                        const textResponse = await response.text();
-                        try {
-                            const result = JSON.parse(textResponse);
-                            if (result.status === 'success' && result.url && result.url.startsWith('http')) {
-                                finalBranchPhoto = result.url;
-                            } else {
-                                gasAlertMessage = result.message || "Gagal sinkron foto ke Drive.";
-                            }
-                        } catch (e) {
-                            gasAlertMessage = "Respon Drive gagal dibaca.";
-                        }
-                    } catch (err) {
-                        gasAlertMessage = "Koneksi ke sistem unggah foto gagal.";
-                    }
-                }
-
-                const info = allBranchData[currentBranch].info || {};
-                info.alamat = document.getElementById('edit-branch-alamat').value;
-                info.pj = document.getElementById('edit-branch-pj').value;
-                info.telp = document.getElementById('edit-branch-telp').value;
-                info.linkMap = document.getElementById('edit-branch-map').value;
-                info.awalKontrak = document.getElementById('edit-branch-awal').value;
-                info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
-                info.foto = finalBranchPhoto;
-                
-                if (currentUser && currentUser.role === 'admin') {
-                    info.username = document.getElementById('edit-branch-username').value.trim();
-                    info.password = document.getElementById('edit-branch-password').value;
-                }
-                
-                saveData(); 
-                closeModal('edit-branch-modal'); 
-                openBranchProfile(); 
-
-                if (gasAlertMessage) {
-                    setTimeout(() => showConfirm("Info Peringatan", "Profil tersimpan lokal. Namun " + gasAlertMessage, null, true), 500);
-                }
-
-            } catch (err) {
-                console.error(err);
-                showConfirm("Error", "Terjadi kesalahan saat menyimpan pengaturan cabang.", null, true);
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+            const info = allBranchData[currentBranch].info || {};
+            info.alamat = document.getElementById('edit-branch-alamat').value;
+            info.pj = document.getElementById('edit-branch-pj').value;
+            info.telp = document.getElementById('edit-branch-telp').value;
+            info.linkMap = document.getElementById('edit-branch-map').value;
+            info.awalKontrak = document.getElementById('edit-branch-awal').value;
+            info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
+            info.foto = currentBranchPhotoBase64;
+            
+            if (currentUser && currentUser.role === 'admin') {
+                info.username = document.getElementById('edit-branch-username').value.trim();
+                info.password = document.getElementById('edit-branch-password').value;
             }
+            saveData(); 
+            closeModal('edit-branch-modal'); 
+            openBranchProfile(); 
+
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         };
 
         function openAdminSettings() {
@@ -1401,7 +1116,6 @@
             showConfirm("Berhasil", "Username & Password Pusat telah diubah.", null, true);
         };
 
-        // Render awal
         if (checkAuth()) { renderBranchNav(); renderRooms(); }
     </script>
 </body>
