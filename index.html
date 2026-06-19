@@ -30,7 +30,7 @@
         <span id="sync-text" class="text-[10px] font-black text-slate-700 tracking-widest uppercase">Menghubungkan...</span>
     </div>
 
-    <!-- PORTAL LOGIN (Hanya tampil saat belum login) -->
+    <!-- PORTAL LOGIN -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-[32px] shadow-2xl max-w-sm w-full border border-slate-100">
             <div class="text-center mb-8">
@@ -65,7 +65,7 @@
         </div>
     </div>
 
-    <!-- MAIN APP (Hanya tampil saat sudah login) -->
+    <!-- MAIN APP -->
     <div id="main-app" class="max-w-7xl mx-auto hidden">
         <!-- Header -->
         <div class="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
@@ -73,12 +73,9 @@
                 <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
                     <span>Rumah Singgah <span class="text-orange-600">Rumah Zakat</span></span>
                 </h1>
-                <div class="flex items-center gap-2 mt-2" id="role-badge-container">
-                    <!-- Badge diinject via JS -->
-                </div>
+                <div class="flex items-center gap-2 mt-2" id="role-badge-container"></div>
             </div>
             
-            <!-- Kanan Atas: Profil & Keluar -->
             <div class="flex flex-col items-end gap-2" id="header-profile-section">
                 <button onclick="openBranchProfile()" class="text-xs font-black text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors px-5 py-2.5 rounded-full uppercase tracking-wider flex items-center gap-2 shadow-sm border border-orange-100 cursor-pointer">
                     <i class="fa-solid fa-house-medical"></i> PROFIL: <span id="active-branch-label">-</span>
@@ -89,10 +86,8 @@
             </div>
         </div>
 
-        <!-- Branch Navigation / Info Lokasi -->
         <div class="mb-6" id="branch-nav-container"></div>
 
-        <!-- Controls (Terisi & Riwayat) -->
         <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 flex flex-col md:flex-row justify-start md:justify-end">
             <div class="flex flex-wrap items-center justify-start md:justify-end gap-3 w-full">
                 <div class="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 flex items-center gap-3">
@@ -117,8 +112,8 @@
         <div id="room-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"></div>
     </div>
 
-    <!-- SEMUA MODAL POP-UP DI BAWAH INI -->
-
+    <!-- SEMUA MODAL POP-UP -->
+    
     <!-- Modal Tambah Lokasi -->
     <div id="add-location-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
         <div class="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
@@ -488,7 +483,6 @@
         // =========================================================
         // PENGEMBALIAN CACHE LOKAL (ANTI ERROR / OFFLINE-FIRST)
         // =========================================================
-        
         let adminCreds = { username: 'admin', password: 'admin' };
         try {
             const storedAdmin = JSON.parse(localStorage.getItem('rskd_admin_creds'));
@@ -540,9 +534,7 @@
         let db, auth, firestoreApi, storage, storageApi;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
 
-        // =========================================================
         // UI INDIKATOR CLOUD
-        // =========================================================
         function setSyncStatus(status, message) {
             const ind = document.getElementById('sync-indicator');
             const icon = document.getElementById('sync-icon');
@@ -577,7 +569,6 @@
                 db = firestoreModule.getFirestore(app);
                 firestoreApi = firestoreModule;
                 
-                // Init Storage
                 storageApi = storageModule;
                 storage = storageModule.getStorage(app);
 
@@ -596,25 +587,35 @@
             }).catch(e => {
                 setSyncStatus('error', 'Gagal memuat Firebase');
             });
-        } else {
-            console.warn("Firebase tidak dikonfigurasi.");
         }
 
         // =========================================================
-        // FUNGSI UPLOAD STORAGE & ERROR HANDLING
+        // FUNGSI UPLOAD STORAGE DENGAN TIMEOUT (ANTI HANG)
         // =========================================================
-        async function uploadImageToStorage(base64Data, path) {
-            if (!storageApi || !storage) {
-                console.warn("Storage API tidak siap");
-                return null; // Hindari mereturn file Base64 raksasa agar aplikasi tidak hang
-            }
+        async function uploadImageToStorageWithTimeout(base64Data, path, timeoutMs = 15000) {
+            if (!storageApi || !storage) return null;
+            
             try {
-                const imgRef = storageApi.ref(storage, path);
-                await storageApi.uploadString(imgRef, base64Data, 'data_url');
-                return await storageApi.getDownloadURL(imgRef); // Mengembalikan link URL resmi
+                const uploadPromise = new Promise(async (resolve, reject) => {
+                    try {
+                        const imgRef = storageApi.ref(storage, path);
+                        await storageApi.uploadString(imgRef, base64Data, 'data_url');
+                        const url = await storageApi.getDownloadURL(imgRef);
+                        resolve(url);
+                    } catch(e) {
+                        reject(e);
+                    }
+                });
+
+                // Memaksa proses berhenti jika Firebase Storage tersangkut lebih dari 15 detik
+                const timeoutPromise = new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error("Timeout Firebase Storage")), timeoutMs)
+                );
+
+                return await Promise.race([uploadPromise, timeoutPromise]);
             } catch (e) {
-                console.error("Storage upload error:", e);
-                return null; // Gagal upload
+                console.error("Storage upload error (Cek Rules Firebase Storage):", e);
+                return null;
             }
         }
 
@@ -635,7 +636,6 @@
                             if (parsed.branchData && Object.keys(parsed.branchData).length > 0) allBranchData = parsed.branchData;
                             if (parsed.adminCreds && parsed.adminCreds.username) adminCreds = parsed.adminCreds;
                             
-                            // SINKRONKAN KE CACHE LOKAL
                             localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
                             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
                             localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
@@ -647,15 +647,12 @@
                                 renderBranchNav();
                                 renderRooms();
                             }
-                        } catch(e) {
-                            console.error("Error parsing data from cloud:", e);
-                        }
+                        } catch(e) {}
                     }
                 } else {
-                    saveDataToCloud(); // Unggah data awal
+                    saveDataToCloud(); 
                 }
             }, (error) => {
-                console.error("Cloud sync listen error:", error);
                 setSyncStatus('error', 'Akses Ditolak (Cek Aturan Firestore)');
             });
         }
@@ -671,23 +668,18 @@
 
             const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
             firestoreApi.setDoc(docRef, { payload: payload }).catch(e => {
-                console.error("Cloud save error:", e);
                 setSyncStatus('error', 'Gagal Menyimpan ke Cloud');
             });
         }
 
         function saveData() {
-            // SIMPAN LOKAL (Offline-First)
             localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
             localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
             localStorage.setItem('rskd_active_branch', currentBranch);
             
-            // Update UI
             renderBranchNav();
             renderRooms();
-            
-            // Sync ke Cloud
             saveDataToCloud();
         }
 
@@ -741,7 +733,6 @@
                     renderRooms();
                 }
             } catch (error) {
-                console.error("Login Handler Error:", error);
                 errBox.innerText = "Terjadi kesalahan sistem saat memproses login.";
                 errBox.classList.remove('hidden');
             }
@@ -778,7 +769,6 @@
                 
                 document.getElementById('btn-clear-history').classList.add('hidden');
                 document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
-                
                 currentBranch = currentUser.branch; 
             }
             
@@ -960,7 +950,6 @@
                 if (isTerisi) {
                     let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
                     if (room.foto) {
-                        // Membungkus foto dengan tag <a> agar bisa diklik dan mencegah event pembukaan modal
                         avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
                     }
 
@@ -1023,7 +1012,9 @@
             return `${diffDays} Hari`;
         }
 
-        // FUNGSI KOMPRESI UKURAN GAMBAR (AGAR TIDAK HANG SAAT UPLOAD)
+        // =========================================================
+        // FUNGSI KOMPRESI EKSTREM (SANGAT CEPAT UNTUK WEB)
+        // =========================================================
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -1031,7 +1022,8 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 800; // Kompres gambar ke max 800px
+                        // Diperkecil maksimal lebar/tinggi 500px agar super ringan (< 50kb)
+                        const MAX_SIZE = 500; 
                         let width = img.width;
                         let height = img.height;
 
@@ -1048,8 +1040,8 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Menghasilkan kualitas 70% jpeg untuk upload ringan
-                        currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        // Menghasilkan kualitas 50% jpeg untuk upload kilat
+                        currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
                         document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
                     }
                     img.src = e.target.result;
@@ -1116,30 +1108,33 @@
                     rs: document.getElementById('reg-rs').value,
                 };
 
-                // Mengunggah gambar baru ke Storage
+                // Mengunggah gambar baru ke Storage dengan fungsi Timeout
                 if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
                     const safeBranchName = currentBranch.replace(/\s+/g, '_');
                     const fileName = `penghuni/${safeBranchName}_${selectedRoomId}_${Date.now()}.jpg`;
-                    const uploadResult = await uploadImageToStorage(currentPhotoBase64, fileName);
+                    
+                    // Tunggu upload maksimal 10 detik. Jika lebih, batalkan upload fotonya agar tidak hang.
+                    const uploadResult = await uploadImageToStorageWithTimeout(currentPhotoBase64, fileName, 10000);
                     
                     if (uploadResult) {
                         currentPhotoBase64 = uploadResult;
                     } else {
-                        showConfirm("Info", "Pasien tersimpan tanpa foto (Gagal terhubung ke Cloud Storage).", null, true);
-                        currentPhotoBase64 = null; // Gagalkan base64 raksasa agar tidak merusak spreadsheet
+                        // Gagalkan base64 raksasa masuk ke database/spreadsheet agar tidak merusak sistem
+                        currentPhotoBase64 = null; 
                     }
                 }
 
+                // Kirim ke Google Spreadsheet (PASTIKAN CODE.GS SUDAH DI-DEPLOY "NEW VERSION")
                 if (APPS_SCRIPT_URL) {
                     try {
                         const payload = new URLSearchParams({ 
                             type: 'checkin', 
                             cabang: currentBranch, 
                             kamar: allBranchData[currentBranch].rooms[idx].no, 
-                            foto: currentPhotoBase64 || "", 
+                            foto: currentPhotoBase64 || "", // Mengirimkan URL foto
                             ...newData 
                         });
-                        await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
+                        fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload }).catch(()=>{});
                     } catch (error) {}
                 }
 
@@ -1273,7 +1268,6 @@
             document.getElementById('edit-branch-modal').classList.replace('hidden', 'flex');
         }
 
-        // Kompresi juga untuk foto profil cabang agar tidak merusak sistem
         function previewBranchImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -1281,7 +1275,7 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 800;
+                        const MAX_SIZE = 500;
                         let width = img.width;
                         let height = img.height;
                         if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
@@ -1290,7 +1284,7 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        currentBranchPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        currentBranchPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
                         document.getElementById('edit-branch-foto-preview').innerHTML = `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">`;
                     }
                     img.src = e.target.result;
@@ -1309,12 +1303,11 @@
             try {
                 if (currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
                     const safeBranchName = currentBranch.replace(/\s+/g, '_');
-                    const uploadResult = await uploadImageToStorage(currentBranchPhotoBase64, `cabang/${safeBranchName}_${Date.now()}.jpg`);
+                    const uploadResult = await uploadImageToStorageWithTimeout(currentBranchPhotoBase64, `cabang/${safeBranchName}_${Date.now()}.jpg`, 10000);
                     
                     if (uploadResult) {
                         currentBranchPhotoBase64 = uploadResult;
                     } else {
-                        showConfirm("Info", "Gagal mengunggah foto cabang ke Storage.", null, true);
                         currentBranchPhotoBase64 = null;
                     }
                 }
