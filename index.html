@@ -517,7 +517,8 @@
         // KONFIGURASI DATABASE REALTIME (FIREBASE)
         // =========================================================
         const GITHUB_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso",
+            // PERBAIKAN: Huruf "j" sekarang huruf kecil (sebelumnya typo "J" besar yang menyebabkan auth error)
+            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYjvkIYyNso",
             authDomain: "database-rumsing-erzet.firebaseapp.com",
             projectId: "database-rumsing-erzet",
             storageBucket: "database-rumsing-erzet.firebasestorage.app",
@@ -1050,69 +1051,74 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             submitBtn.disabled = true;
 
-            const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
-            const newData = {
-                penghuni: document.getElementById('reg-nama').value,
-                nik: document.getElementById('reg-nik').value,
-                telp: document.getElementById('reg-telp').value,
-                asal: document.getElementById('reg-asal').value,
-                tglMasuk: document.getElementById('reg-tglMasuk').value,
-                diagnosa: document.getElementById('reg-diagnosa').value,
-                dokter: document.getElementById('reg-dokter').value,
-                rs: document.getElementById('reg-rs').value,
-            };
+            try {
+                const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
+                const newData = {
+                    penghuni: document.getElementById('reg-nama').value,
+                    nik: document.getElementById('reg-nik').value,
+                    telp: document.getElementById('reg-telp').value,
+                    asal: document.getElementById('reg-asal').value,
+                    tglMasuk: document.getElementById('reg-tglMasuk').value,
+                    diagnosa: document.getElementById('reg-diagnosa').value,
+                    dokter: document.getElementById('reg-dokter').value,
+                    rs: document.getElementById('reg-rs').value,
+                };
 
-            // PELINDUNG ANTI-MACET: Default ke base64 jika Apps Script gagal
-            let finalPhotoUrl = currentPhotoBase64;
-            let gasAlertMessage = null;
+                let finalPhotoUrl = currentPhotoBase64;
+                let gasAlertMessage = null;
 
-            if (APPS_SCRIPT_URL) {
-                const payload = new URLSearchParams({ 
-                    type: 'checkin', 
-                    cabang: currentBranch, 
-                    kamar: allBranchData[currentBranch].rooms[idx].no, 
-                    foto: currentPhotoBase64 || "", 
-                    ...newData 
-                });
-                
-                try {
-                    const response = await fetch(APPS_SCRIPT_URL, { 
-                        method: 'POST', 
-                        body: payload 
+                // Kirim Base64 Gambar ke Google Drive via Apps Script
+                if (APPS_SCRIPT_URL) {
+                    const payload = new URLSearchParams({ 
+                        type: 'checkin', 
+                        cabang: currentBranch, 
+                        kamar: allBranchData[currentBranch].rooms[idx].no, 
+                        foto: currentPhotoBase64 || "", 
+                        ...newData 
                     });
                     
-                    const textResponse = await response.text();
                     try {
-                        const result = JSON.parse(textResponse);
-                        if (result.status === 'success') {
-                            if (result.url && result.url.startsWith('http')) {
-                                finalPhotoUrl = result.url; // Berhasil dapat link Google Drive
+                        const response = await fetch(APPS_SCRIPT_URL, { 
+                            method: 'POST', 
+                            body: payload 
+                        });
+                        
+                        const textResponse = await response.text();
+                        try {
+                            const result = JSON.parse(textResponse);
+                            if (result.status === 'success') {
+                                if (result.url && result.url.startsWith('http')) {
+                                    finalPhotoUrl = result.url; // Berhasil dapat link Google Drive
+                                }
+                            } else {
+                                gasAlertMessage = result.message || "Gagal merekam di Spreadsheet";
                             }
-                        } else {
-                            gasAlertMessage = result.message || "Gagal merekam di Spreadsheet";
+                        } catch (e) {
+                            gasAlertMessage = "Format balasan Apps Script tidak valid.";
                         }
-                    } catch (e) {
-                        // Jika script gagal dan mengembalikan halaman error HTML
-                        gasAlertMessage = "Google Drive memblokir akses. Berikan Izin Akses (Authorize) pada Apps Script Anda.";
+                    } catch (error) {
+                        gasAlertMessage = "Koneksi jaringan ke Google Spreadsheet gagal terhubung.";
                     }
-                } catch (error) {
-                    gasAlertMessage = "Koneksi jaringan ke Google Spreadsheet gagal terhubung.";
                 }
-            }
 
-            // APAPUN YANG TERJADI (Spreadsheet Sukses/Gagal), Simpan Data di Dashboard (Firebase)!
-            allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
-            saveData();
-            closeModal('register-modal');
-            
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+                // APAPUN YANG TERJADI (Spreadsheet Sukses/Gagal), Simpan Data di Dashboard (Firebase)!
+                allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
+                saveData();
+                closeModal('register-modal');
 
-            // Jika Spreadsheet Error, Tetap Tampilkan Info Tanpa Bikin Macet
-            if (gasAlertMessage) {
-                setTimeout(() => {
-                    showConfirm("Peringatan Spreadsheet", "Data pasien TERSIMPAN di Dasbor, namun gagal dikirim ke Spreadsheet: \n\n" + gasAlertMessage, null, true);
-                }, 500);
+                // Jika Spreadsheet Error, Tetap Tampilkan Info Tanpa Bikin Macet
+                if (gasAlertMessage) {
+                    setTimeout(() => {
+                        showConfirm("Peringatan Spreadsheet", "Data pasien TERSIMPAN di Dasbor, namun ada kendala di Google Spreadsheet: \n\n" + gasAlertMessage, null, true);
+                    }, 500);
+                }
+
+            } catch (err) {
+                console.error(err);
+                showConfirm("Error", "Terjadi kesalahan sistem saat menyimpan data.", null, true);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         };
 
