@@ -959,7 +959,10 @@
 
                 if (isTerisi) {
                     let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
-                    if (room.foto) avatar = `<img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
+                    if (room.foto) {
+                        // Membungkus foto dengan tag <a> agar bisa diklik dan mencegah event pembukaan modal
+                        avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
+                    }
 
                     card.innerHTML = `
                         ${deleteBtn}
@@ -1097,7 +1100,14 @@
 
             if (APPS_SCRIPT_URL) {
                 try {
-                    const payload = new URLSearchParams({ type: 'checkin', cabang: currentBranch, kamar: allBranchData[currentBranch].rooms[idx].no, ...newData });
+                    // Menyisipkan URL foto ke payload agar dapat ditangkap oleh Google Apps Script
+                    const payload = new URLSearchParams({ 
+                        type: 'checkin', 
+                        cabang: currentBranch, 
+                        kamar: allBranchData[currentBranch].rooms[idx].no, 
+                        foto: currentPhotoBase64 || "", 
+                        ...newData 
+                    });
                     await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
                 } catch (error) {}
             }
