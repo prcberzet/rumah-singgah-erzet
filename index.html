@@ -1113,7 +1113,7 @@
                 
                 if (APPS_SCRIPT_URL) {
                     try {
-                        const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, tglKeluar: tglKeluar, durasi: durasi });
+                        const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, penghuni: room.penghuni, tglKeluar: tglKeluar, durasi: durasi });
                         fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
                     } catch (error) {}
                 }
