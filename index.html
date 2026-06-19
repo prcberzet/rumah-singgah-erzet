@@ -514,10 +514,10 @@
         });
 
         // =========================================================
-        // KONFIGURASI DATABASE REALTIME & STORAGE (FIREBASE)
+        // KONFIGURASI DATABASE REALTIME (FIREBASE)
         // =========================================================
         const GITHUB_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso",
+            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso", // PERBAIKAN: Huruf "J" besar sesuai info Anda sebelumnya
             authDomain: "database-rumsing-erzet.firebaseapp.com",
             projectId: "database-rumsing-erzet",
             storageBucket: "database-rumsing-erzet.firebasestorage.app",
@@ -531,7 +531,7 @@
             : GITHUB_FIREBASE_CONFIG;
 
         let isCloudSyncActive = false;
-        let db, auth, firestoreApi, storage, storageApi;
+        let db, auth, firestoreApi;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
 
         // UI INDIKATOR CLOUD
@@ -561,16 +561,12 @@
             Promise.all([
                 import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
                 import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js')
-            ]).then(async ([appModule, authModule, firestoreModule, storageModule]) => {
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
+            ]).then(async ([appModule, authModule, firestoreModule]) => {
                 const app = appModule.initializeApp(firebaseConfig);
                 auth = authModule.getAuth(app);
                 db = firestoreModule.getFirestore(app);
                 firestoreApi = firestoreModule;
-                
-                storageApi = storageModule;
-                storage = storageModule.getStorage(app);
 
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -587,36 +583,6 @@
             }).catch(e => {
                 setSyncStatus('error', 'Gagal memuat Firebase');
             });
-        }
-
-        // =========================================================
-        // FUNGSI UPLOAD STORAGE DENGAN TIMEOUT (ANTI HANG)
-        // =========================================================
-        async function uploadImageToStorageWithTimeout(base64Data, path, timeoutMs = 15000) {
-            if (!storageApi || !storage) return null;
-            
-            try {
-                const uploadPromise = new Promise(async (resolve, reject) => {
-                    try {
-                        const imgRef = storageApi.ref(storage, path);
-                        await storageApi.uploadString(imgRef, base64Data, 'data_url');
-                        const url = await storageApi.getDownloadURL(imgRef);
-                        resolve(url);
-                    } catch(e) {
-                        reject(e);
-                    }
-                });
-
-                // Memaksa proses berhenti jika Firebase Storage tersangkut lebih dari 15 detik
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error("Timeout Firebase Storage")), timeoutMs)
-                );
-
-                return await Promise.race([uploadPromise, timeoutPromise]);
-            } catch (e) {
-                console.error("Storage upload error (Cek Rules Firebase Storage):", e);
-                return null;
-            }
         }
 
         // =========================================================
@@ -1040,7 +1006,7 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Menghasilkan kualitas 50% jpeg untuk upload kilat
+                        // Menghasilkan kualitas 50% jpeg untuk upload kilat ke Apps Script
                         currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
                         document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
                     }
@@ -1108,37 +1074,42 @@
                     rs: document.getElementById('reg-rs').value,
                 };
 
-                // Mengunggah gambar baru ke Storage dengan fungsi Timeout
-                if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
-                    const safeBranchName = currentBranch.replace(/\s+/g, '_');
-                    const fileName = `penghuni/${safeBranchName}_${selectedRoomId}_${Date.now()}.jpg`;
+                let finalPhotoUrl = currentPhotoBase64;
+
+                // Kirim Base64 Gambar ke Google Drive via Apps Script (Super Cepat)
+                if (APPS_SCRIPT_URL) {
+                    const payload = new URLSearchParams({ 
+                        type: 'checkin', 
+                        cabang: currentBranch, 
+                        kamar: allBranchData[currentBranch].rooms[idx].no, 
+                        foto: currentPhotoBase64 || "", 
+                        ...newData 
+                    });
                     
-                    // Tunggu upload maksimal 10 detik. Jika lebih, batalkan upload fotonya agar tidak hang.
-                    const uploadResult = await uploadImageToStorageWithTimeout(currentPhotoBase64, fileName, 10000);
-                    
-                    if (uploadResult) {
-                        currentPhotoBase64 = uploadResult;
-                    } else {
-                        // Gagalkan base64 raksasa masuk ke database/spreadsheet agar tidak merusak sistem
-                        currentPhotoBase64 = null; 
+                    try {
+                        const response = await fetch(APPS_SCRIPT_URL, { 
+                            method: 'POST', 
+                            body: payload 
+                        });
+                        
+                        const result = await response.json();
+                        
+                        // Menangkap URL Google Drive langsung dari Script
+                        if (result.status === 'success' && result.url) {
+                            finalPhotoUrl = result.url;
+                        } else if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
+                            // Jika ada kegagalan teknis, gagalkan penyisipan base64 mentah ke Database agar aman
+                            finalPhotoUrl = null; 
+                        }
+                    } catch (error) {
+                        console.error("Gagal mengirim ke Apps Script:", error);
+                        if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
+                            finalPhotoUrl = null;
+                        }
                     }
                 }
 
-                // Kirim ke Google Spreadsheet (PASTIKAN CODE.GS SUDAH DI-DEPLOY "NEW VERSION")
-                if (APPS_SCRIPT_URL) {
-                    try {
-                        const payload = new URLSearchParams({ 
-                            type: 'checkin', 
-                            cabang: currentBranch, 
-                            kamar: allBranchData[currentBranch].rooms[idx].no, 
-                            foto: currentPhotoBase64 || "", // Mengirimkan URL foto
-                            ...newData 
-                        });
-                        fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload }).catch(()=>{});
-                    } catch (error) {}
-                }
-
-                allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: currentPhotoBase64 };
+                allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
                 saveData();
                 closeModal('register-modal');
 
@@ -1301,14 +1272,29 @@
             submitBtn.disabled = true;
 
             try {
+                let finalBranchPhoto = currentBranchPhotoBase64;
+
+                // Mengunggah gambar profil cabang ke Google Drive via Apps Script
                 if (currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
-                    const safeBranchName = currentBranch.replace(/\s+/g, '_');
-                    const uploadResult = await uploadImageToStorageWithTimeout(currentBranchPhotoBase64, `cabang/${safeBranchName}_${Date.now()}.jpg`, 10000);
-                    
-                    if (uploadResult) {
-                        currentBranchPhotoBase64 = uploadResult;
+                    if (APPS_SCRIPT_URL) {
+                        const payload = new URLSearchParams({ 
+                            type: 'upload_branch_photo', 
+                            cabang: currentBranch,
+                            foto: currentBranchPhotoBase64
+                        });
+                        try {
+                            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload });
+                            const result = await response.json();
+                            if (result.status === 'success' && result.url) {
+                                finalBranchPhoto = result.url;
+                            } else {
+                                finalBranchPhoto = null;
+                            }
+                        } catch (err) {
+                            finalBranchPhoto = null;
+                        }
                     } else {
-                        currentBranchPhotoBase64 = null;
+                        finalBranchPhoto = null;
                     }
                 }
 
@@ -1319,7 +1305,7 @@
                 info.linkMap = document.getElementById('edit-branch-map').value;
                 info.awalKontrak = document.getElementById('edit-branch-awal').value;
                 info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
-                info.foto = currentBranchPhotoBase64;
+                info.foto = finalBranchPhoto;
                 
                 if (currentUser && currentUser.role === 'admin') {
                     info.username = document.getElementById('edit-branch-username').value.trim();
