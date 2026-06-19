@@ -72,7 +72,7 @@
                         </button>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
+                <button type="submit" id="login-btn" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
             </form>
 
             <div class="mt-6 bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
@@ -565,17 +565,22 @@
             const ind = document.getElementById('sync-indicator');
             const icon = document.getElementById('sync-icon');
             const txt = document.getElementById('sync-text');
+            const loginBtn = document.getElementById('login-btn'); // Tangkap tombol login
+
             ind.classList.remove('hidden');
             
             if(status === 'success') {
                 icon.className = 'fa-solid fa-cloud text-emerald-500';
                 txt.innerText = message || 'Live Sync Aktif';
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'LOGIN'; }
             } else if (status === 'error') {
                 icon.className = 'fa-solid fa-triangle-exclamation text-red-500';
                 txt.innerText = message || 'Sync Gagal';
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'LOGIN (OFFLINE MODE)'; }
             } else {
                 icon.className = 'fa-solid fa-circle-notch fa-spin text-blue-500';
                 txt.innerText = 'Menghubungkan...';
+                if(loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SINKRONISASI SERVER...'; }
             }
         }
 
@@ -651,9 +656,32 @@
 
         function saveDataToCloud() {
             if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
-            const payload = JSON.stringify({ branches: savedBranches, branchData: allBranchData, adminCreds: adminCreds });
+            
+            // PROTEKSI LIMIT 1MB FIRESTORE: Hapus data base64 foto mentah yang terlanjur tersimpan di lokal (legacy)
+            let safeBranchData = JSON.parse(JSON.stringify(allBranchData));
+            for (let branch in safeBranchData) {
+                if(safeBranchData[branch].rooms) {
+                    safeBranchData[branch].rooms.forEach(r => { 
+                        if(r.foto && r.foto.length > 20000 && !r.foto.startsWith('http')) r.foto = null; 
+                    });
+                }
+                if(safeBranchData[branch].history) {
+                    safeBranchData[branch].history.forEach(h => { 
+                        if(h.foto && h.foto.length > 20000 && !h.foto.startsWith('http')) h.foto = null; 
+                    });
+                }
+                if(safeBranchData[branch].info && safeBranchData[branch].info.foto && safeBranchData[branch].info.foto.length > 20000 && !safeBranchData[branch].info.foto.startsWith('http')) {
+                    safeBranchData[branch].info.foto = null;
+                }
+            }
+
+            const payload = JSON.stringify({ branches: savedBranches, branchData: safeBranchData, adminCreds: adminCreds });
             const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => { setSyncStatus('error', 'Gagal Menyimpan ke Cloud'); });
+            
+            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => { 
+                console.error("Firebase sync error:", e);
+                setSyncStatus('error', 'Gagal Menyimpan ke Cloud (Data Kepenuhan)'); 
+            });
         }
 
         function saveData() {
@@ -927,8 +955,10 @@
                     let avatar = `<div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-2xl md:text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
                     if (room.foto) {
                         if (room.foto.startsWith('http')) {
+                            // Link resmi dari Google Drive, gunakan tag <a>
                             avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
                         } else {
+                            // Masih berwujud Base64 (sementara)
                             avatar = `<img src="${room.foto}" class="w-20 h-20 md:w-24 md:h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
                         }
                     }
@@ -992,6 +1022,7 @@
             return `${diffDays} Hari`;
         }
 
+        // FUNGSI KOMPRESI EKSTREM (SANGAT CEPAT UNTUK WEB)
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -999,7 +1030,6 @@
                     const img = new Image();
                     img.onload = function() {
                         const canvas = document.createElement('canvas');
-                        // Kompresi ketat untuk mobile upload (Max lebar 500px)
                         const MAX_SIZE = 500; 
                         let width = img.width;
                         let height = img.height;
@@ -1017,7 +1047,6 @@
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, 0, 0, width, height);
                         
-                        // Menghasilkan kualitas 50% jpeg untuk upload super ringan
                         currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
                         document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500 shadow-sm">`;
                     }
