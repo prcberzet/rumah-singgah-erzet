@@ -488,7 +488,6 @@
         // =========================================================
         // PENGEMBALIAN CACHE LOKAL (ANTI ERROR / OFFLINE-FIRST)
         // =========================================================
-        // Menjamin aplikasi selalu punya data bawaan jika penyimpanan kosong/rusak.
         
         let adminCreds = { username: 'admin', password: 'admin' };
         try {
@@ -508,7 +507,6 @@
             if (storedData && Object.keys(storedData).length > 0) allBranchData = storedData;
         } catch(e) {}
 
-        // Mengatur Sesi Pengguna
         let currentUser = null;
         try { currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null; } catch(e) {}
         
@@ -517,15 +515,13 @@
         let currentPhotoBase64 = null;
         let currentBranchPhotoBase64 = null;
 
-        // Terapkan Memory Awal untuk cabang yang kosong
         savedBranches.forEach(branch => {
             if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
         });
 
         // =========================================================
-        // KONFIGURASI DATABASE REALTIME (FIREBASE)
+        // KONFIGURASI DATABASE REALTIME & STORAGE (FIREBASE)
         // =========================================================
-        // Kunci API yang akurat berdasarkan tangkapan layar pengguna.
         const GITHUB_FIREBASE_CONFIG = {
             apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso",
             authDomain: "database-rumsing-erzet.firebaseapp.com",
@@ -541,7 +537,7 @@
             : GITHUB_FIREBASE_CONFIG;
 
         let isCloudSyncActive = false;
-        let db, auth, firestoreApi;
+        let db, auth, firestoreApi, storage, storageApi;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
 
         // =========================================================
@@ -573,12 +569,17 @@
             Promise.all([
                 import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
                 import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
-                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
-            ]).then(async ([appModule, authModule, firestoreModule]) => {
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js'),
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js')
+            ]).then(async ([appModule, authModule, firestoreModule, storageModule]) => {
                 const app = appModule.initializeApp(firebaseConfig);
                 auth = authModule.getAuth(app);
                 db = firestoreModule.getFirestore(app);
                 firestoreApi = firestoreModule;
+                
+                // Init Storage
+                storageApi = storageModule;
+                storage = storageModule.getStorage(app);
 
                 try {
                     if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
@@ -597,6 +598,24 @@
             });
         } else {
             console.warn("Firebase tidak dikonfigurasi.");
+        }
+
+        // =========================================================
+        // FUNGSI UPLOAD STORAGE
+        // =========================================================
+        async function uploadImageToStorage(base64Data, path) {
+            if (!storageApi || !storage) {
+                console.warn("Storage API tidak siap");
+                return base64Data; // fallback
+            }
+            try {
+                const imgRef = storageApi.ref(storage, path);
+                await storageApi.uploadString(imgRef, base64Data, 'data_url');
+                return await storageApi.getDownloadURL(imgRef); // Mengembalikan link URL resmi
+            } catch (e) {
+                console.error("Storage upload error:", e);
+                return base64Data; // fallback jika storage ditolak
+            }
         }
 
         // =========================================================
@@ -643,21 +662,10 @@
 
         function saveDataToCloud() {
             if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
-            
-            // Mencegah Database Overload dengan memangkas foto besar
-            const strippedBranchData = JSON.parse(JSON.stringify(allBranchData));
-            for (const branch in strippedBranchData) {
-                strippedBranchData[branch].rooms.forEach(room => {
-                    if (room.foto && room.foto.length > 50000) room.foto = null; 
-                });
-                if (strippedBranchData[branch].info && strippedBranchData[branch].info.foto && strippedBranchData[branch].info.foto.length > 50000) {
-                    strippedBranchData[branch].info.foto = null;
-                }
-            }
 
             const payload = JSON.stringify({
                 branches: savedBranches,
-                branchData: strippedBranchData,
+                branchData: allBranchData, // Sekarang mengirim data utuh (URL foto sangat kecil ukurannya)
                 adminCreds: adminCreds
             });
 
@@ -684,7 +692,7 @@
         }
 
         // =========================================================
-        // LOGIKA OTENTIKASI (ANTI-GAGAL LOGIN)
+        // LOGIKA OTENTIKASI
         // =========================================================
         function handleLogin(e) {
             e.preventDefault();
@@ -695,16 +703,12 @@
                 const rawUser = document.getElementById('login-user').value.trim();
                 const pass = document.getElementById('login-pass').value;
 
-                // 1. JALUR DARURAT (Bypass/Super Admin Bawaan)
-                // Memastikan Anda tetap bisa login walau data rusak
                 if (rawUser === 'admin' && pass === 'admin') {
                     currentUser = { role: 'admin', name: 'Super Admin Pusat' };
                 } 
-                // 2. CEK ADMIN NORMAL (Dinamis)
                 else if (adminCreds && adminCreds.username && rawUser.toLowerCase() === adminCreds.username.toLowerCase() && pass === adminCreds.password) {
                     currentUser = { role: 'admin', name: 'Super Admin Pusat' };
                 } 
-                // 3. CEK CABANG
                 else {
                     let matchedBranch = null;
                     for (let branch of savedBranches) {
@@ -729,7 +733,6 @@
                     }
                 }
 
-                // Sukses Login
                 try { sessionStorage.setItem('rskd_user', JSON.stringify(currentUser)); } catch (e) {}
                 
                 document.getElementById('login-form').reset();
@@ -1085,6 +1088,13 @@
                 rs: document.getElementById('reg-rs').value,
             };
 
+            // Mengunggah gambar baru ke Storage jika formatnya masih base64 (baru diunggah)
+            if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
+                const safeBranchName = currentBranch.replace(/\s+/g, '_');
+                const fileName = `penghuni/${safeBranchName}_${selectedRoomId}_${Date.now()}.jpg`;
+                currentPhotoBase64 = await uploadImageToStorage(currentPhotoBase64, fileName);
+            }
+
             if (APPS_SCRIPT_URL) {
                 try {
                     const payload = new URLSearchParams({ type: 'checkin', cabang: currentBranch, kamar: allBranchData[currentBranch].rooms[idx].no, ...newData });
@@ -1110,7 +1120,6 @@
                 
                 if (APPS_SCRIPT_URL) {
                     try {
-                        // MENGIRIM PARAMETER 'penghuni' DAN 'type' AGAR COCOK DENGAN SPREADSHEET
                         const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, penghuni: room.penghuni, tglKeluar: tglKeluar, durasi: durasi });
                         fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
                     } catch (error) {}
@@ -1226,8 +1235,19 @@
             }
         }
         
-        document.getElementById('edit-branch-form').onsubmit = (e) => {
+        document.getElementById('edit-branch-form').onsubmit = async (e) => {
             e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+            submitBtn.disabled = true;
+
+            // Mengunggah gambar cabang ke Storage
+            if (currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
+                const safeBranchName = currentBranch.replace(/\s+/g, '_');
+                currentBranchPhotoBase64 = await uploadImageToStorage(currentBranchPhotoBase64, `cabang/${safeBranchName}_${Date.now()}.jpg`);
+            }
+
             const info = allBranchData[currentBranch].info || {};
             info.alamat = document.getElementById('edit-branch-alamat').value;
             info.pj = document.getElementById('edit-branch-pj').value;
@@ -1241,7 +1261,12 @@
                 info.username = document.getElementById('edit-branch-username').value.trim();
                 info.password = document.getElementById('edit-branch-password').value;
             }
-            saveData(); closeModal('edit-branch-modal'); openBranchProfile(); 
+            saveData(); 
+            closeModal('edit-branch-modal'); 
+            openBranchProfile(); 
+
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
         };
 
         function openAdminSettings() {
