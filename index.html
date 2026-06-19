@@ -517,7 +517,7 @@
         // KONFIGURASI DATABASE REALTIME (FIREBASE)
         // =========================================================
         const GITHUB_FIREBASE_CONFIG = {
-            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso", // PERBAIKAN: Huruf "J" besar sesuai info Anda sebelumnya
+            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYJvkIYyNso",
             authDomain: "database-rumsing-erzet.firebaseapp.com",
             projectId: "database-rumsing-erzet",
             storageBucket: "database-rumsing-erzet.firebasestorage.app",
@@ -534,7 +534,6 @@
         let db, auth, firestoreApi;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'rumsing-app';
 
-        // UI INDIKATOR CLOUD
         function setSyncStatus(status, message) {
             const ind = document.getElementById('sync-indicator');
             const icon = document.getElementById('sync-icon');
@@ -625,17 +624,9 @@
 
         function saveDataToCloud() {
             if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
-
-            const payload = JSON.stringify({
-                branches: savedBranches,
-                branchData: allBranchData, 
-                adminCreds: adminCreds
-            });
-
+            const payload = JSON.stringify({ branches: savedBranches, branchData: allBranchData, adminCreds: adminCreds });
             const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
-            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => {
-                setSyncStatus('error', 'Gagal Menyimpan ke Cloud');
-            });
+            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => { setSyncStatus('error', 'Gagal Menyimpan ke Cloud'); });
         }
 
         function saveData() {
@@ -643,7 +634,6 @@
             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
             localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
             localStorage.setItem('rskd_active_branch', currentBranch);
-            
             renderBranchNav();
             renderRooms();
             saveDataToCloud();
@@ -673,13 +663,10 @@
                         let info = allBranchData[branch]?.info || {};
                         let branchUser = info.username || branch.toLowerCase().replace(/\s/g, '');
                         let branchPass = info.password || '123';
-                        
                         if (rawUser.toLowerCase() === branchUser.toLowerCase() && pass === branchPass) {
-                            matchedBranch = branch;
-                            break;
+                            matchedBranch = branch; break;
                         }
                     }
-                    
                     if(matchedBranch) {
                         currentUser = { role: 'cabang', name: `Admin ${matchedBranch}`, branch: matchedBranch };
                         currentBranch = matchedBranch;
@@ -692,12 +679,8 @@
                 }
 
                 try { sessionStorage.setItem('rskd_user', JSON.stringify(currentUser)); } catch (e) {}
-                
                 document.getElementById('login-form').reset();
-                if (checkAuth()) {
-                    renderBranchNav();
-                    renderRooms();
-                }
+                if (checkAuth()) { renderBranchNav(); renderRooms(); }
             } catch (error) {
                 errBox.innerText = "Terjadi kesalahan sistem saat memproses login.";
                 errBox.classList.remove('hidden');
@@ -916,7 +899,13 @@
                 if (isTerisi) {
                     let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
                     if (room.foto) {
-                        avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
+                        if (room.foto.startsWith('http')) {
+                            // Link resmi dari Google Drive, gunakan tag <a>
+                            avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
+                        } else {
+                            // Masih berwujud Base64 (sementara)
+                            avatar = `<img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
+                        }
                     }
 
                     card.innerHTML = `
@@ -1061,64 +1050,69 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             submitBtn.disabled = true;
 
-            try {
-                const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
-                const newData = {
-                    penghuni: document.getElementById('reg-nama').value,
-                    nik: document.getElementById('reg-nik').value,
-                    telp: document.getElementById('reg-telp').value,
-                    asal: document.getElementById('reg-asal').value,
-                    tglMasuk: document.getElementById('reg-tglMasuk').value,
-                    diagnosa: document.getElementById('reg-diagnosa').value,
-                    dokter: document.getElementById('reg-dokter').value,
-                    rs: document.getElementById('reg-rs').value,
-                };
+            const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
+            const newData = {
+                penghuni: document.getElementById('reg-nama').value,
+                nik: document.getElementById('reg-nik').value,
+                telp: document.getElementById('reg-telp').value,
+                asal: document.getElementById('reg-asal').value,
+                tglMasuk: document.getElementById('reg-tglMasuk').value,
+                diagnosa: document.getElementById('reg-diagnosa').value,
+                dokter: document.getElementById('reg-dokter').value,
+                rs: document.getElementById('reg-rs').value,
+            };
 
-                let finalPhotoUrl = currentPhotoBase64;
+            // PELINDUNG ANTI-MACET: Default ke base64 jika Apps Script gagal
+            let finalPhotoUrl = currentPhotoBase64;
+            let gasAlertMessage = null;
 
-                // Kirim Base64 Gambar ke Google Drive via Apps Script (Super Cepat)
-                if (APPS_SCRIPT_URL) {
-                    const payload = new URLSearchParams({ 
-                        type: 'checkin', 
-                        cabang: currentBranch, 
-                        kamar: allBranchData[currentBranch].rooms[idx].no, 
-                        foto: currentPhotoBase64 || "", 
-                        ...newData 
+            if (APPS_SCRIPT_URL) {
+                const payload = new URLSearchParams({ 
+                    type: 'checkin', 
+                    cabang: currentBranch, 
+                    kamar: allBranchData[currentBranch].rooms[idx].no, 
+                    foto: currentPhotoBase64 || "", 
+                    ...newData 
+                });
+                
+                try {
+                    const response = await fetch(APPS_SCRIPT_URL, { 
+                        method: 'POST', 
+                        body: payload 
                     });
                     
+                    const textResponse = await response.text();
                     try {
-                        const response = await fetch(APPS_SCRIPT_URL, { 
-                            method: 'POST', 
-                            body: payload 
-                        });
-                        
-                        const result = await response.json();
-                        
-                        // Menangkap URL Google Drive langsung dari Script
-                        if (result.status === 'success' && result.url) {
-                            finalPhotoUrl = result.url;
-                        } else if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
-                            // Jika ada kegagalan teknis, gagalkan penyisipan base64 mentah ke Database agar aman
-                            finalPhotoUrl = null; 
+                        const result = JSON.parse(textResponse);
+                        if (result.status === 'success') {
+                            if (result.url && result.url.startsWith('http')) {
+                                finalPhotoUrl = result.url; // Berhasil dapat link Google Drive
+                            }
+                        } else {
+                            gasAlertMessage = result.message || "Gagal merekam di Spreadsheet";
                         }
-                    } catch (error) {
-                        console.error("Gagal mengirim ke Apps Script:", error);
-                        if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
-                            finalPhotoUrl = null;
-                        }
+                    } catch (e) {
+                        // Jika script gagal dan mengembalikan halaman error HTML
+                        gasAlertMessage = "Google Drive memblokir akses. Berikan Izin Akses (Authorize) pada Apps Script Anda.";
                     }
+                } catch (error) {
+                    gasAlertMessage = "Koneksi jaringan ke Google Spreadsheet gagal terhubung.";
                 }
+            }
 
-                allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
-                saveData();
-                closeModal('register-modal');
+            // APAPUN YANG TERJADI (Spreadsheet Sukses/Gagal), Simpan Data di Dashboard (Firebase)!
+            allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
+            saveData();
+            closeModal('register-modal');
+            
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
 
-            } catch (err) {
-                console.error(err);
-                showConfirm("Error", "Terjadi kesalahan sistem saat menyimpan data.", null, true);
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
+            // Jika Spreadsheet Error, Tetap Tampilkan Info Tanpa Bikin Macet
+            if (gasAlertMessage) {
+                setTimeout(() => {
+                    showConfirm("Peringatan Spreadsheet", "Data pasien TERSIMPAN di Dasbor, namun gagal dikirim ke Spreadsheet: \n\n" + gasAlertMessage, null, true);
+                }, 500);
             }
         };
 
@@ -1273,28 +1267,29 @@
 
             try {
                 let finalBranchPhoto = currentBranchPhotoBase64;
+                let gasAlertMessage = null;
 
-                // Mengunggah gambar profil cabang ke Google Drive via Apps Script
-                if (currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
-                    if (APPS_SCRIPT_URL) {
-                        const payload = new URLSearchParams({ 
-                            type: 'upload_branch_photo', 
-                            cabang: currentBranch,
-                            foto: currentBranchPhotoBase64
-                        });
+                if (APPS_SCRIPT_URL && currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
+                    const payload = new URLSearchParams({ 
+                        type: 'upload_branch_photo', 
+                        cabang: currentBranch,
+                        foto: currentBranchPhotoBase64
+                    });
+                    try {
+                        const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload });
+                        const textResponse = await response.text();
                         try {
-                            const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload });
-                            const result = await response.json();
-                            if (result.status === 'success' && result.url) {
+                            const result = JSON.parse(textResponse);
+                            if (result.status === 'success' && result.url && result.url.startsWith('http')) {
                                 finalBranchPhoto = result.url;
                             } else {
-                                finalBranchPhoto = null;
+                                gasAlertMessage = result.message || "Gagal sinkron Spreadsheet.";
                             }
-                        } catch (err) {
-                            finalBranchPhoto = null;
+                        } catch (e) {
+                            gasAlertMessage = "Beri Izin Akses di Apps Script Anda terlebih dahulu.";
                         }
-                    } else {
-                        finalBranchPhoto = null;
+                    } catch (err) {
+                        gasAlertMessage = "Koneksi ke Apps Script gagal.";
                     }
                 }
 
@@ -1315,6 +1310,10 @@
                 saveData(); 
                 closeModal('edit-branch-modal'); 
                 openBranchProfile(); 
+
+                if (gasAlertMessage) {
+                    setTimeout(() => showConfirm("Info", "Profil tersimpan lokal. Namun: " + gasAlertMessage, null, true), 500);
+                }
 
             } catch (err) {
                 console.error(err);
