@@ -601,12 +601,12 @@
         }
 
         // =========================================================
-        // FUNGSI UPLOAD STORAGE
+        // FUNGSI UPLOAD STORAGE & ERROR HANDLING
         // =========================================================
         async function uploadImageToStorage(base64Data, path) {
             if (!storageApi || !storage) {
                 console.warn("Storage API tidak siap");
-                return base64Data; // fallback
+                return null; // Hindari mereturn file Base64 raksasa agar aplikasi tidak hang
             }
             try {
                 const imgRef = storageApi.ref(storage, path);
@@ -614,7 +614,7 @@
                 return await storageApi.getDownloadURL(imgRef); // Mengembalikan link URL resmi
             } catch (e) {
                 console.error("Storage upload error:", e);
-                return base64Data; // fallback jika storage ditolak
+                return null; // Gagal upload
             }
         }
 
@@ -665,7 +665,7 @@
 
             const payload = JSON.stringify({
                 branches: savedBranches,
-                branchData: allBranchData, // Sekarang mengirim data utuh (URL foto sangat kecil ukurannya)
+                branchData: allBranchData, 
                 adminCreds: adminCreds
             });
 
@@ -1023,12 +1023,36 @@
             return `${diffDays} Hari`;
         }
 
+        // FUNGSI KOMPRESI UKURAN GAMBAR (AGAR TIDAK HANG SAAT UPLOAD)
         function previewImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    currentPhotoBase64 = e.target.result;
-                    document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 800; // Kompres gambar ke max 800px
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height && width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        } else if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        // Menghasilkan kualitas 70% jpeg untuk upload ringan
+                        currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
+                    }
+                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(input.files[0]);
             }
@@ -1079,45 +1103,57 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             submitBtn.disabled = true;
 
-            const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
-            const newData = {
-                penghuni: document.getElementById('reg-nama').value,
-                nik: document.getElementById('reg-nik').value,
-                telp: document.getElementById('reg-telp').value,
-                asal: document.getElementById('reg-asal').value,
-                tglMasuk: document.getElementById('reg-tglMasuk').value,
-                diagnosa: document.getElementById('reg-diagnosa').value,
-                dokter: document.getElementById('reg-dokter').value,
-                rs: document.getElementById('reg-rs').value,
-            };
+            try {
+                const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
+                const newData = {
+                    penghuni: document.getElementById('reg-nama').value,
+                    nik: document.getElementById('reg-nik').value,
+                    telp: document.getElementById('reg-telp').value,
+                    asal: document.getElementById('reg-asal').value,
+                    tglMasuk: document.getElementById('reg-tglMasuk').value,
+                    diagnosa: document.getElementById('reg-diagnosa').value,
+                    dokter: document.getElementById('reg-dokter').value,
+                    rs: document.getElementById('reg-rs').value,
+                };
 
-            // Mengunggah gambar baru ke Storage jika formatnya masih base64 (baru diunggah)
-            if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
-                const safeBranchName = currentBranch.replace(/\s+/g, '_');
-                const fileName = `penghuni/${safeBranchName}_${selectedRoomId}_${Date.now()}.jpg`;
-                currentPhotoBase64 = await uploadImageToStorage(currentPhotoBase64, fileName);
+                // Mengunggah gambar baru ke Storage
+                if (currentPhotoBase64 && currentPhotoBase64.startsWith('data:image')) {
+                    const safeBranchName = currentBranch.replace(/\s+/g, '_');
+                    const fileName = `penghuni/${safeBranchName}_${selectedRoomId}_${Date.now()}.jpg`;
+                    const uploadResult = await uploadImageToStorage(currentPhotoBase64, fileName);
+                    
+                    if (uploadResult) {
+                        currentPhotoBase64 = uploadResult;
+                    } else {
+                        showConfirm("Info", "Pasien tersimpan tanpa foto (Gagal terhubung ke Cloud Storage).", null, true);
+                        currentPhotoBase64 = null; // Gagalkan base64 raksasa agar tidak merusak spreadsheet
+                    }
+                }
+
+                if (APPS_SCRIPT_URL) {
+                    try {
+                        const payload = new URLSearchParams({ 
+                            type: 'checkin', 
+                            cabang: currentBranch, 
+                            kamar: allBranchData[currentBranch].rooms[idx].no, 
+                            foto: currentPhotoBase64 || "", 
+                            ...newData 
+                        });
+                        await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
+                    } catch (error) {}
+                }
+
+                allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: currentPhotoBase64 };
+                saveData();
+                closeModal('register-modal');
+
+            } catch (err) {
+                console.error(err);
+                showConfirm("Error", "Terjadi kesalahan sistem saat menyimpan data.", null, true);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
-
-            if (APPS_SCRIPT_URL) {
-                try {
-                    // Menyisipkan URL foto ke payload agar dapat ditangkap oleh Google Apps Script
-                    const payload = new URLSearchParams({ 
-                        type: 'checkin', 
-                        cabang: currentBranch, 
-                        kamar: allBranchData[currentBranch].rooms[idx].no, 
-                        foto: currentPhotoBase64 || "", 
-                        ...newData 
-                    });
-                    await fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', body: payload });
-                } catch (error) {}
-            }
-
-            allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: currentPhotoBase64 };
-            saveData();
-            closeModal('register-modal');
-            
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
         };
 
         function processCheckout(id) {
@@ -1237,10 +1273,28 @@
             document.getElementById('edit-branch-modal').classList.replace('hidden', 'flex');
         }
 
+        // Kompresi juga untuk foto profil cabang agar tidak merusak sistem
         function previewBranchImage(input) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
-                reader.onload = function(e) { currentBranchPhotoBase64 = e.target.result; document.getElementById('edit-branch-foto-preview').innerHTML = `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">`; };
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 800;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        currentBranchPhotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                        document.getElementById('edit-branch-foto-preview').innerHTML = `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">`;
+                    }
+                    img.src = e.target.result;
+                };
                 reader.readAsDataURL(input.files[0]);
             }
         }
@@ -1252,31 +1306,44 @@
             submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
             submitBtn.disabled = true;
 
-            // Mengunggah gambar cabang ke Storage
-            if (currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
-                const safeBranchName = currentBranch.replace(/\s+/g, '_');
-                currentBranchPhotoBase64 = await uploadImageToStorage(currentBranchPhotoBase64, `cabang/${safeBranchName}_${Date.now()}.jpg`);
-            }
+            try {
+                if (currentBranchPhotoBase64 && currentBranchPhotoBase64.startsWith('data:image')) {
+                    const safeBranchName = currentBranch.replace(/\s+/g, '_');
+                    const uploadResult = await uploadImageToStorage(currentBranchPhotoBase64, `cabang/${safeBranchName}_${Date.now()}.jpg`);
+                    
+                    if (uploadResult) {
+                        currentBranchPhotoBase64 = uploadResult;
+                    } else {
+                        showConfirm("Info", "Gagal mengunggah foto cabang ke Storage.", null, true);
+                        currentBranchPhotoBase64 = null;
+                    }
+                }
 
-            const info = allBranchData[currentBranch].info || {};
-            info.alamat = document.getElementById('edit-branch-alamat').value;
-            info.pj = document.getElementById('edit-branch-pj').value;
-            info.telp = document.getElementById('edit-branch-telp').value;
-            info.linkMap = document.getElementById('edit-branch-map').value;
-            info.awalKontrak = document.getElementById('edit-branch-awal').value;
-            info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
-            info.foto = currentBranchPhotoBase64;
-            
-            if (currentUser && currentUser.role === 'admin') {
-                info.username = document.getElementById('edit-branch-username').value.trim();
-                info.password = document.getElementById('edit-branch-password').value;
-            }
-            saveData(); 
-            closeModal('edit-branch-modal'); 
-            openBranchProfile(); 
+                const info = allBranchData[currentBranch].info || {};
+                info.alamat = document.getElementById('edit-branch-alamat').value;
+                info.pj = document.getElementById('edit-branch-pj').value;
+                info.telp = document.getElementById('edit-branch-telp').value;
+                info.linkMap = document.getElementById('edit-branch-map').value;
+                info.awalKontrak = document.getElementById('edit-branch-awal').value;
+                info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
+                info.foto = currentBranchPhotoBase64;
+                
+                if (currentUser && currentUser.role === 'admin') {
+                    info.username = document.getElementById('edit-branch-username').value.trim();
+                    info.password = document.getElementById('edit-branch-password').value;
+                }
+                
+                saveData(); 
+                closeModal('edit-branch-modal'); 
+                openBranchProfile(); 
 
-            submitBtn.innerHTML = originalText;
-            submitBtn.disabled = false;
+            } catch (err) {
+                console.error(err);
+                showConfirm("Error", "Terjadi kesalahan saat menyimpan pengaturan cabang.", null, true);
+            } finally {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
         };
 
         function openAdminSettings() {
