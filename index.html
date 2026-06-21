@@ -1240,8 +1240,9 @@
                     const textResponse = await response.text();
                     try {
                         const result = JSON.parse(textResponse);
-                        if (result.status === 'success' && result.url) {
-                            finalPhotoUrl = result.url; // Gunakan link Google Drive untuk pas foto
+                        if (result.status === 'success') {
+                            if (result.url) finalPhotoUrl = result.url; // Link Google Drive untuk Pasien
+                            if (result.ktpUrl) finalKtpUrl = result.ktpUrl; // Link Google Drive untuk KTP
                         }
                     } catch (e) {
                         console.error("Gagal parse respon Apps Script:", e);
@@ -1264,13 +1265,33 @@
             const roomIdx = allBranchData[currentBranch].rooms.findIndex(r => r.id === id);
             const room = allBranchData[currentBranch].rooms[roomIdx];
             
-            showConfirm("Check-out Pasien", `Check-out untuk ${room.penghuni} dari ${room.no}?`, async () => {
+            const msgHtml = `
+                <div class="text-left text-xs text-slate-600 space-y-3 mt-2">
+                    <p class="text-sm text-center mb-4">Check-out <strong>${room.penghuni}</strong> dari <strong>${room.no}</strong>?</p>
+                    
+                    <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
+                        <p class="font-bold text-orange-800 mb-1"><i class="fa-solid fa-suitcase-rolling"></i> Perhatian Barang Bawaan</p>
+                        <p class="text-[11px]">Periksa kembali barang bawaan anda, pastikan tidak ada barang milik pasien yang tertinggal di dalam kamar.</p>
+                    </div>
+                    
+                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 flex flex-col items-center text-center">
+                        <p class="mb-2 font-medium text-blue-800 leading-relaxed text-[11px]">Kami mengajak anda untuk berpartisipasi dalam gerakan sedekah Rumah Singgah dengan scan barcode berikut ini:</p>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://rumahzakat.org/donasi/rskd-sedekah-rumah-singgah?source=1022026001800" alt="QR Code Donasi" class="w-28 h-28 rounded shadow-sm mb-1 bg-white p-2 border border-slate-200">
+                    </div>
+                    
+                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-center italic font-medium text-emerald-800 leading-relaxed text-[11px]">
+                        "Semoga Allah memberikan kesembuhan yang sempurna kepadamu, dan semoga apa yang telah disedekahkan menjadi pahala jariyah dan menambah keberkahan. Aamiin."
+                    </div>
+                </div>
+            `;
+            
+            showConfirm("Check-out Pasien", msgHtml, async () => {
                 const tglKeluar = new Date().toISOString().split('T')[0];
                 const durasi = formatDurasi(room.tglMasuk, tglKeluar);
                 
                 if (APPS_SCRIPT_URL) {
                     try {
-                        const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, penghuni: room.penghuni, tglKeluar: tglKeluar, durasi: durasi });
+                        const payload = newSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, penghuni: room.penghuni, tglKeluar: tglKeluar, durasi: durasi });
                         fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload }).catch(e => console.log(e));
                     } catch (error) {}
                 }
@@ -1324,7 +1345,7 @@
 
         function showConfirm(title, message, onConfirm, isAlertOnly = false) {
             document.getElementById('confirm-title').innerText = title;
-            document.getElementById('confirm-message').innerText = message;
+            document.getElementById('confirm-message').innerHTML = message; // Berubah jadi innerHTML agar bisa merender Barcode
             const btn = document.getElementById('confirm-action-btn');
             if (isAlertOnly) { btn.style.display = 'none'; document.querySelector('#confirm-modal button:first-child').innerText = 'Tutup'; } 
             else { btn.style.display = 'block'; document.querySelector('#confirm-modal button:first-child').innerText = 'Batal'; btn.onclick = () => { onConfirm(); closeModal('confirm-modal'); }; }
