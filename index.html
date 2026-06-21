@@ -1241,8 +1241,8 @@
                     try {
                         const result = JSON.parse(textResponse);
                         if (result.status === 'success') {
-                            if (result.url) finalPhotoUrl = result.url; // Link Google Drive untuk Pasien
-                            if (result.ktpUrl) finalKtpUrl = result.ktpUrl; // Link Google Drive untuk KTP
+                            if (result.url) finalPhotoUrl = result.url; // Tautan Google Drive Foto Profil
+                            if (result.ktpUrl) finalKtpUrl = result.ktpUrl; // Tautan Google Drive Foto KTP
                         }
                     } catch (e) {
                         console.error("Gagal parse respon Apps Script:", e);
@@ -1252,6 +1252,7 @@
                 }
             }
 
+            // Simpan ke Dasbor Local lalu tembak ke Firebase Realtime
             allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl, ktpFoto: finalKtpUrl };
             saveData();
             
