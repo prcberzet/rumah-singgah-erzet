@@ -23,6 +23,12 @@
 </head>
 <body class="p-4 md:p-8">
 
+    <!-- Indikator Cloud Sync -->
+    <div id="sync-indicator" class="fixed bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-200 flex items-center gap-2 z-50 transition-all duration-300 hidden">
+        <i id="sync-icon" class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> 
+        <span id="sync-text" class="text-[10px] font-black text-slate-700 tracking-widest uppercase">Menghubungkan...</span>
+    </div>
+
     <!-- PORTAL LOGIN -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
         <div class="bg-white p-8 rounded-[32px] shadow-2xl max-w-sm w-full border border-slate-100">
@@ -49,7 +55,7 @@
                         </button>
                     </div>
                 </div>
-                <button type="submit" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
+                <button type="submit" id="login-btn" class="w-full bg-slate-900 text-white font-black py-4 rounded-xl hover:bg-orange-600 transition-colors shadow-lg shadow-slate-900/20 mt-2 tracking-wider">LOGIN</button>
             </form>
 
             <div class="mt-6 bg-blue-50 p-4 rounded-xl border border-blue-100 text-center">
@@ -469,23 +475,17 @@
 
     <!-- CORE SCRIPT -->
     <script>
+        // =========================================================
+        // INISIALISASI VARIABEL LOKAL
+        // =========================================================
         let adminCreds = { username: 'admin', password: 'admin' };
-        try {
-            const storedAdmin = JSON.parse(localStorage.getItem('rskd_admin_creds'));
-            if (storedAdmin && storedAdmin.username) adminCreds = storedAdmin;
-        } catch(e) {}
+        try { const storedAdmin = JSON.parse(localStorage.getItem('rskd_admin_creds')); if (storedAdmin && storedAdmin.username) adminCreds = storedAdmin; } catch(e) {}
 
         let savedBranches = ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
-        try {
-            const storedBranches = JSON.parse(localStorage.getItem('rskd_branches'));
-            if (Array.isArray(storedBranches) && storedBranches.length > 0) savedBranches = storedBranches;
-        } catch(e) {}
+        try { const storedBranches = JSON.parse(localStorage.getItem('rskd_branches')); if (Array.isArray(storedBranches) && storedBranches.length > 0) savedBranches = storedBranches; } catch(e) {}
 
         let allBranchData = {};
-        try {
-            const storedData = JSON.parse(localStorage.getItem('rskd_multi_branch_data'));
-            if (storedData && Object.keys(storedData).length > 0) allBranchData = storedData;
-        } catch(e) {}
+        try { const storedData = JSON.parse(localStorage.getItem('rskd_multi_branch_data')); if (storedData && Object.keys(storedData).length > 0) allBranchData = storedData; } catch(e) {}
 
         let currentUser = null;
         try { currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null; } catch(e) {}
@@ -499,6 +499,134 @@
             if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
         });
 
+        // =========================================================
+        // KONFIGURASI FIREBASE CLOUD SYNC & FIRESTORE
+        // =========================================================
+        const firebaseConfig = {
+            apiKey: "AIzaSyBPwdsCe4_KNpe9GojkciaPBYjvkIYyNso",
+            authDomain: "database-rumsing-erzet.firebaseapp.com",
+            projectId: "database-rumsing-erzet",
+            storageBucket: "database-rumsing-erzet.firebasestorage.app",
+            messagingSenderId: "181345777217",
+            appId: "1:181345777217:web:f0c2a733922aab5e01b8c0"
+        };
+
+        const appId = 'rumsing-app';
+        let isCloudSyncActive = false;
+        let db, auth, firestoreApi;
+
+        function setSyncStatus(status, message) {
+            const ind = document.getElementById('sync-indicator');
+            const icon = document.getElementById('sync-icon');
+            const txt = document.getElementById('sync-text');
+            const loginBtn = document.getElementById('login-btn'); 
+
+            ind.classList.remove('hidden');
+            
+            if(status === 'success') {
+                icon.className = 'fa-solid fa-cloud text-emerald-500';
+                txt.innerText = message || 'Live Sync Aktif';
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'LOGIN'; }
+            } else if (status === 'error') {
+                icon.className = 'fa-solid fa-triangle-exclamation text-red-500';
+                txt.innerText = message || 'Sync Gagal';
+                if(loginBtn) { loginBtn.disabled = false; loginBtn.innerHTML = 'LOGIN (OFFLINE MODE)'; }
+            } else {
+                icon.className = 'fa-solid fa-circle-notch fa-spin text-blue-500';
+                txt.innerText = 'Menghubungkan...';
+                if(loginBtn) { loginBtn.disabled = true; loginBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> SINKRONISASI SERVER...'; }
+            }
+        }
+
+        if (firebaseConfig.apiKey) {
+            setSyncStatus('loading');
+            Promise.all([
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js'),
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js'),
+                import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js')
+            ]).then(async ([appModule, authModule, firestoreModule]) => {
+                const app = appModule.initializeApp(firebaseConfig);
+                auth = authModule.getAuth(app);
+                db = firestoreModule.getFirestore(app);
+                firestoreApi = firestoreModule;
+
+                try {
+                    await authModule.signInAnonymously(auth);
+                    isCloudSyncActive = true;
+                    listenToCloud();
+                } catch (e) {
+                    console.error("Firebase Auth Error:", e);
+                    setSyncStatus('error', 'Auth Gagal. Mode Offline.');
+                }
+            }).catch(e => {
+                setSyncStatus('error', 'Gagal memuat Firebase');
+            });
+        }
+
+        function listenToCloud() {
+            if (!auth.currentUser || !firestoreApi) return;
+            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
+            
+            firestoreApi.onSnapshot(docRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.data();
+                    if (data.payload) {
+                        try {
+                            const parsed = JSON.parse(data.payload);
+                            if (parsed.branches) savedBranches = parsed.branches;
+                            if (parsed.branchData) allBranchData = parsed.branchData;
+                            if (parsed.adminCreds) adminCreds = parsed.adminCreds;
+                            
+                            localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
+                            localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
+                            localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
+
+                            setSyncStatus('success', 'Live Sync Aktif');
+                            if (checkAuth()) {
+                                if (!savedBranches.includes(currentBranch)) currentBranch = savedBranches[0] || "";
+                                renderBranchNav();
+                                renderRooms();
+                            }
+                        } catch(e) {}
+                    }
+                } else {
+                    saveDataToCloud(); 
+                }
+            }, (error) => {
+                setSyncStatus('error', 'Akses Ditolak');
+            });
+        }
+
+        function saveDataToCloud() {
+            if (!isCloudSyncActive || !auth.currentUser || !firestoreApi) return;
+            
+            // ANTI-OVERLOAD: Filter base64 gambar agar tidak dikirim ke Firestore
+            let safeBranchData = JSON.parse(JSON.stringify(allBranchData));
+            for (let branch in safeBranchData) {
+                if(safeBranchData[branch].rooms) {
+                    safeBranchData[branch].rooms.forEach(r => { 
+                        if(r.foto && !r.foto.startsWith('http')) r.foto = null; 
+                    });
+                }
+                if(safeBranchData[branch].history) {
+                    safeBranchData[branch].history.forEach(h => { 
+                        if(h.foto && !h.foto.startsWith('http')) h.foto = null; 
+                    });
+                }
+            }
+
+            const payload = JSON.stringify({ branches: savedBranches, branchData: safeBranchData, adminCreds: adminCreds });
+            const docRef = firestoreApi.doc(db, 'artifacts', appId, 'public', 'data', 'state', 'main');
+            
+            firestoreApi.setDoc(docRef, { payload: payload }).catch(e => { 
+                console.error("Firebase sync error:", e);
+                setSyncStatus('error', 'Gagal Sinkronisasi'); 
+            });
+        }
+
+        // =========================================================
+        // CORE LOGIC & PENYIMPANAN
+        // =========================================================
         function saveData() {
             localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
             localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
@@ -507,6 +635,7 @@
             
             renderBranchNav();
             renderRooms();
+            saveDataToCloud(); // <-- Data langsung terkirim ke perangkat lain
         }
 
         function handleLogin(e) {
@@ -772,10 +901,9 @@
                     let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
                     if (room.foto) {
                         if (room.foto.startsWith('http')) {
-                            // Link resmi dari Google Drive, gunakan tag <a>
+                            // Jika ada link Google Drive
                             avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
                         } else {
-                            // Masih berwujud Base64 (sementara)
                             avatar = `<img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
                         }
                     }
@@ -906,6 +1034,9 @@
             document.getElementById('register-modal').classList.replace('hidden', 'flex');
         }
 
+        // =========================================================
+        // UPLOAD GOOGLE DRIVE & SIMPAN SPREADSHEET VIA APPS SCRIPT
+        // =========================================================
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBiwfg7G-kFzhrWQZnz0ld244GqiY3DDdBYAna-YevxvNTxCRLWqPofkfQ4AA9l8fY7A/exec';
 
         document.getElementById('register-form').onsubmit = async (e) => {
@@ -945,7 +1076,7 @@
                     try {
                         const result = JSON.parse(textResponse);
                         if (result.status === 'success' && result.url) {
-                            finalPhotoUrl = result.url; // Gunakan link Google Drive
+                            finalPhotoUrl = result.url; // Berhasil! Gambar aman di Google Drive
                         }
                     } catch (e) {
                         console.error("Gagal parse respon Apps Script:", e);
@@ -955,8 +1086,10 @@
                 }
             }
 
+            // Simpan ke Dasbor Local lalu tembak ke Firebase Realtime
             allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
             saveData();
+            
             closeModal('register-modal');
             
             submitBtn.innerHTML = originalText;
@@ -974,7 +1107,6 @@
                 if (APPS_SCRIPT_URL) {
                     try {
                         const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, penghuni: room.penghuni, tglKeluar: tglKeluar, durasi: durasi });
-                        // Untuk checkout kita tidak perlu membaca URL Drive, jadi kita bisa abaikan responnya
                         fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload }).catch(e => console.log(e));
                     } catch (error) {}
                 }
@@ -982,7 +1114,7 @@
                 allBranchData[currentBranch].history.push({ ...room, tglKeluar: tglKeluar, durasi: durasi });
                 allBranchData[currentBranch].rooms[roomIdx] = createEmptyRoom(room.id);
                 allBranchData[currentBranch].rooms[roomIdx].no = room.no; 
-                saveData();
+                saveData(); // <--- Menyimpan secara Realtime ke Firebase & Local
             });
         }
 
