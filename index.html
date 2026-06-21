@@ -2,7 +2,7 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rumah Singgah Rumah Zakat</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -11,8 +11,7 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; }
         .room-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 20px; border: 1px solid #e2e8f0; overflow: hidden; }
         .room-card:hover { transform: translateY(-4px); box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); }
-        input, select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; transition: all 0.2s; background: #fdfdfd; font-size: 16px; }
-        @media (min-width: 768px) { input, select, textarea { font-size: 14px; } }
+        input, select, textarea { width: 100%; padding: 0.75rem; border: 1px solid #e2e8f0; border-radius: 0.75rem; transition: all 0.2s; background: #fdfdfd; }
         input:focus, select:focus, textarea:focus { border-color: #f97316; outline: none; box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.1); background: #fff; }
         .photo-container { position: relative; width: 100%; height: 160px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; overflow: hidden; }
         
@@ -23,12 +22,6 @@
     </style>
 </head>
 <body class="p-4 md:p-8">
-
-    <!-- Indikator Cloud Sync -->
-    <div id="sync-indicator" class="fixed bottom-4 left-4 bg-white/90 backdrop-blur px-4 py-2 rounded-full shadow-lg border border-slate-200 flex items-center gap-2 z-50 transition-all duration-300 hidden">
-        <i id="sync-icon" class="fa-solid fa-circle-notch fa-spin text-blue-500"></i> 
-        <span id="sync-text" class="text-[10px] font-black text-slate-700 tracking-widest uppercase">Menghubungkan...</span>
-    </div>
 
     <!-- PORTAL LOGIN -->
     <div id="login-overlay" class="fixed inset-0 bg-slate-50 z-[100] flex items-center justify-center p-4">
@@ -69,14 +62,13 @@
     <div id="main-app" class="max-w-7xl mx-auto hidden">
         <div class="flex flex-col md:flex-row md:items-start justify-between gap-6 mb-8">
             <div>
-                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight flex flex-col md:flex-row md:items-center gap-1 md:gap-3">
-                    <span>Rumah Singgah</span>
-                    <span class="text-orange-600">Rumah Zakat</span>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight flex items-center gap-3">
+                    <span>Rumah Singgah <span class="text-orange-600">Rumah Zakat</span></span>
                 </h1>
                 <div class="flex items-center gap-2 mt-2" id="role-badge-container"></div>
             </div>
             
-            <div class="flex flex-col items-start md:items-end gap-2" id="header-profile-section">
+            <div class="flex flex-col items-end gap-2" id="header-profile-section">
                 <button onclick="openBranchProfile()" class="text-xs font-black text-orange-600 bg-orange-50 hover:bg-orange-100 transition-colors px-5 py-2.5 rounded-full uppercase tracking-wider flex items-center gap-2 shadow-sm border border-orange-100 cursor-pointer">
                     <i class="fa-solid fa-house-medical"></i> PROFIL: <span id="active-branch-label">-</span>
                 </button>
@@ -86,9 +78,9 @@
             </div>
         </div>
 
-        <div class="mb-6 overflow-x-auto pb-2" id="branch-nav-container"></div>
+        <div class="mb-6" id="branch-nav-container"></div>
 
-        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 flex flex-col md:flex-row justify-start md:justify-end gap-4">
+        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 flex flex-col md:flex-row justify-start md:justify-end">
             <div class="flex flex-wrap items-center justify-start md:justify-end gap-3 w-full">
                 <div class="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 flex items-center gap-3">
                     <div class="bg-orange-100 p-2 rounded-lg text-orange-600">
@@ -119,7 +111,7 @@
                     <h2 class="text-2xl font-black text-slate-800">Tambah Lokasi Baru</h2>
                     <p class="text-xs text-orange-500 font-bold uppercase">Cabang Rumah Singgah</p>
                 </div>
-                <button onclick="closeModal('add-location-modal')" class="bg-slate-100 hover:bg-slate-200 w-8 h-8 rounded-full transition flex justify-center items-center">
+                <button onclick="closeModal('add-location-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition">
                     <i class="fa-solid fa-xmark text-slate-500"></i>
                 </button>
             </div>
@@ -145,4 +137,1015 @@
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                     <div>
-                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Jumlah Kam
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Jumlah Kamar Awal</label>
+                        <input type="number" id="loc-kamar" required min="1" max="50" value="5">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Awal Kontrak</label>
+                        <input type="date" id="loc-awal">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Akhir Kontrak</label>
+                        <input type="date" id="loc-akhir">
+                    </div>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mt-4">
+                    <p class="text-[10px] font-black text-blue-800 uppercase tracking-wider mb-2"><i class="fa-solid fa-shield-halved mr-1"></i> Akses Login Cabang (Khusus Admin)</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-blue-600 block mb-1">Username Baru</label>
+                            <input type="text" id="loc-username" placeholder="Username cabang" class="text-sm bg-white border-blue-200">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-blue-600 block mb-1">Password Baru</label>
+                            <input type="text" id="loc-password" placeholder="Password cabang" class="text-sm bg-white border-blue-200">
+                        </div>
+                    </div>
+                    <p class="text-[9px] text-blue-500 mt-2">*Kosongkan jika ingin menggunakan default: <i>username (namacabang)</i> & <i>password (123)</i></p>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('add-location-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl">Batal</button>
+                    <button type="submit" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-2xl shadow-lg">Simpan Lokasi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Form Registrasi -->
+    <div id="register-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-lg w-full p-6 md:p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 id="register-room-title" class="text-2xl font-black text-slate-800">Data Penghuni</h2>
+                    <p id="branch-form-info" class="text-xs text-orange-500 font-bold uppercase"></p>
+                </div>
+                <button onclick="closeModal('register-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full">
+                    <i class="fa-solid fa-xmark text-slate-500"></i>
+                </button>
+            </div>
+
+            <form id="register-form" class="space-y-4">
+                <div class="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div id="photo-preview-container" class="mb-3">
+                        <div class="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-400">
+                            <i class="fa-solid fa-user text-3xl"></i>
+                        </div>
+                    </div>
+                    <label class="cursor-pointer bg-white px-4 py-2 rounded-xl text-xs font-black text-orange-600 border border-orange-200 hover:bg-orange-50 transition">
+                        <i class="fa-solid fa-camera mr-2"></i> Pilih Foto Penghuni
+                        <input type="file" id="reg-foto" accept="image/*" class="hidden" onchange="previewImage(this)">
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Nama Lengkap</label>
+                        <input type="text" id="reg-nama" required placeholder="Nama lengkap pasien">
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">NIK</label>
+                            <input type="text" id="reg-nik" required placeholder="Nomor KTP">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">No. Telepon / WA</label>
+                            <input type="tel" id="reg-telp" required placeholder="08...">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Asal Kota / Alamat</label>
+                            <input type="text" id="reg-asal" required placeholder="Alamat / Kota asal">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Tgl Masuk</label>
+                            <input type="date" id="reg-tglMasuk" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Rumah Sakit</label>
+                            <input type="text" id="reg-rs" required placeholder="Nama RS">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Dokter PJ</label>
+                            <input type="text" id="reg-dokter" required placeholder="dr. ...">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Diagnosa Penyakit</label>
+                        <input type="text" id="reg-diagnosa" required placeholder="Contoh: Kanker Payudara">
+                    </div>
+                </div>
+                
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('register-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl">Batal</button>
+                    <button type="submit" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-2xl shadow-lg">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Riwayat -->
+    <div id="history-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-7xl w-full p-8 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800">Riwayat Pasien</h2>
+                    <p class="text-xs text-slate-400">Arsip data pasien yang sudah check-out di cabang ini</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+                    <button id="btn-clear-history" onclick="clearHistory()" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 transition shadow-sm hidden">
+                        <i class="fa-solid fa-trash-can"></i> Hapus Semua
+                    </button>
+                    <button onclick="exportHistoryExcel()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black py-2.5 px-5 rounded-xl flex items-center gap-2 transition shadow-md">
+                        <i class="fa-solid fa-file-excel"></i> Eksport Excel
+                    </button>
+                    <button onclick="closeModal('history-modal')" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full transition"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+            </div>
+            <div class="flex-1 overflow-auto rounded-2xl border border-slate-100">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                        <tr>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Asal Kamar</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Foto</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Identitas & Kontak</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Kesehatan & RS</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Periode & Durasi</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500 text-center admin-only-col hidden">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-50 bg-white"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Profil Cabang -->
+    <div id="branch-profile-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[55] backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div class="relative w-full h-48 bg-slate-100">
+                <img id="profile-foto" src="https://placehold.co/600x400/f1f5f9/94a3b8?text=Foto+Rumah+Singgah" class="w-full h-full object-cover" alt="Foto Cabang">
+                <button onclick="closeModal('branch-profile-modal')" class="absolute top-4 right-4 bg-white/80 hover:bg-white backdrop-blur shadow-sm p-2 rounded-full transition text-slate-600">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="absolute -bottom-6 left-8 bg-orange-600 text-white w-12 h-12 flex items-center justify-center rounded-2xl shadow-lg border-4 border-white">
+                    <i class="fa-solid fa-building-user text-xl"></i>
+                </div>
+            </div>
+            
+            <div class="pt-10 p-8 overflow-y-auto">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <p class="text-xs text-orange-500 font-bold uppercase tracking-wider mb-1">Lokasi / Cabang</p>
+                        <h2 id="profile-kota" class="text-2xl font-black text-slate-800">Nama Kota</h2>
+                    </div>
+                    <button onclick="openEditBranchProfile()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold py-2 px-4 rounded-xl transition flex items-center gap-2">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+                    <div class="col-span-full">
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1"><i class="fa-solid fa-map-location-dot mr-1"></i> Alamat Lengkap</p>
+                        <p id="profile-alamat" class="text-sm font-medium text-slate-700 leading-relaxed">-</p>
+                        <a id="profile-map" href="#" target="_blank" class="inline-flex items-center gap-2 mt-2 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-3 py-1.5 rounded-lg transition hidden">
+                            <i class="fa-solid fa-location-arrow"></i> Buka di Google Maps
+                        </a>
+                    </div>
+                    
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1"><i class="fa-solid fa-bed mr-1"></i> Jumlah Kamar Tersedia</p>
+                        <p id="profile-kamar" class="text-sm font-bold text-slate-800">-</p>
+                    </div>
+
+                    <div>
+                        <p class="text-[10px] font-black text-slate-400 uppercase mb-1"><i class="fa-solid fa-calendar-check mr-1"></i> Periode Kontrak</p>
+                        <p class="text-sm font-medium text-slate-700">
+                            <span id="profile-awal" class="text-emerald-600 font-bold">-</span> s/d <span id="profile-akhir" class="text-red-500 font-bold">-</span>
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-2xl col-span-full flex flex-col sm:flex-row gap-4 border border-slate-100">
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Penanggung Jawab (PJ)</p>
+                            <p id="profile-pj" class="text-sm font-bold text-slate-800">-</p>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[10px] font-black text-slate-400 uppercase mb-1">Contact Person</p>
+                            <p id="profile-cp" class="text-sm font-bold text-slate-800">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Edit Profil Cabang -->
+    <div id="edit-branch-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[60] backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-lg w-full p-8 shadow-2xl overflow-y-auto max-h-[90vh]">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800">Edit Profil Cabang</h2>
+                    <p class="text-xs text-orange-500 font-bold uppercase">Lengkapi Informasi Lokasi</p>
+                </div>
+                <button onclick="closeModal('edit-branch-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition">
+                    <i class="fa-solid fa-xmark text-slate-500"></i>
+                </button>
+            </div>
+            <form id="edit-branch-form" class="space-y-4">
+                <div class="flex flex-col items-center justify-center p-4 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <div id="edit-branch-foto-preview" class="w-full h-32 bg-slate-100 rounded-xl overflow-hidden mb-3 border border-slate-200">
+                    </div>
+                    <label class="cursor-pointer bg-white px-4 py-2 rounded-xl text-xs font-black text-orange-600 border border-orange-200 hover:bg-orange-50 transition">
+                        <i class="fa-solid fa-camera mr-2"></i> Unggah Foto Cabang
+                        <input type="file" accept="image/*" class="hidden" onchange="previewBranchImage(this)">
+                    </label>
+                </div>
+
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Alamat Lengkap</label>
+                    <textarea id="edit-branch-alamat" required placeholder="Alamat lengkap lokasi..." rows="2" class="resize-none"></textarea>
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Link Google Maps (URL)</label>
+                    <input type="url" id="edit-branch-map" placeholder="https://maps.app.goo.gl/...">
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Penanggung Jawab</label>
+                        <input type="text" id="edit-branch-pj" required placeholder="Nama PJ">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">No Telepon / CP</label>
+                        <input type="tel" id="edit-branch-telp" required placeholder="08...">
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Awal Kontrak</label>
+                        <input type="date" id="edit-branch-awal">
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase mb-1 block">Akhir Kontrak</label>
+                        <input type="date" id="edit-branch-akhir">
+                    </div>
+                </div>
+
+                <div id="admin-credentials-section" class="bg-blue-50 border border-blue-100 p-4 rounded-xl mt-6 hidden">
+                    <p class="text-[10px] font-black text-blue-800 uppercase tracking-wider mb-2"><i class="fa-solid fa-shield-halved mr-1"></i> Akses Login Cabang (Hanya Terlihat Oleh Admin Pusat)</p>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] font-bold text-blue-600 block mb-1">Ubah Username</label>
+                            <input type="text" id="edit-branch-username" placeholder="Username login" class="text-sm bg-white border-blue-200">
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-blue-600 block mb-1">Ubah Password</label>
+                            <input type="text" id="edit-branch-password" placeholder="Password login" class="text-sm bg-white border-blue-200">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('edit-branch-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-2xl">Batal</button>
+                    <button type="submit" class="flex-1 bg-orange-600 text-white font-bold py-3 rounded-2xl shadow-lg">Simpan Perubahan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Pengaturan Admin Pusat -->
+    <div id="admin-settings-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[70] backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-sm w-full p-8 shadow-2xl">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="text-xl font-black text-slate-800">Pengaturan Pusat</h2>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase mt-1">Ubah Kredensial Login</p>
+                </div>
+                <button onclick="closeModal('admin-settings-modal')" class="bg-slate-100 hover:bg-slate-200 p-2 rounded-full transition">
+                    <i class="fa-solid fa-xmark text-slate-500"></i>
+                </button>
+            </div>
+            <form id="admin-settings-form" class="space-y-4">
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Username Pusat</label>
+                    <input type="text" id="admin-username-input" required class="bg-slate-50 text-sm">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Password Pusat</label>
+                    <div class="relative">
+                        <input type="password" id="admin-password-input" required class="bg-slate-50 text-sm w-full pr-10">
+                        <button type="button" onclick="togglePassword('admin-password-input', 'admin-pass-icon')" class="absolute inset-y-0 right-0 px-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors focus:outline-none">
+                            <i id="admin-pass-icon" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button type="button" onclick="closeModal('admin-settings-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl text-sm">Batal</button>
+                    <button type="submit" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl shadow-lg text-sm">Simpan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Confirm Universal -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[80] backdrop-blur-sm">
+        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center">
+            <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 id="confirm-title" class="text-xl font-black text-slate-800 mb-2">Konfirmasi</h3>
+            <p id="confirm-message" class="text-sm text-slate-500 mb-6">Apakah Anda yakin?</p>
+            <div class="flex gap-3">
+                <button onclick="closeModal('confirm-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Batal</button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-600/30">Ya, Lanjutkan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CORE SCRIPT -->
+    <script>
+        let adminCreds = { username: 'admin', password: 'admin' };
+        try {
+            const storedAdmin = JSON.parse(localStorage.getItem('rskd_admin_creds'));
+            if (storedAdmin && storedAdmin.username) adminCreds = storedAdmin;
+        } catch(e) {}
+
+        let savedBranches = ["Jakarta Timur", "Pekanbaru", "Medan", "Semarang", "Surabaya", "Yogyakarta"];
+        try {
+            const storedBranches = JSON.parse(localStorage.getItem('rskd_branches'));
+            if (Array.isArray(storedBranches) && storedBranches.length > 0) savedBranches = storedBranches;
+        } catch(e) {}
+
+        let allBranchData = {};
+        try {
+            const storedData = JSON.parse(localStorage.getItem('rskd_multi_branch_data'));
+            if (storedData && Object.keys(storedData).length > 0) allBranchData = storedData;
+        } catch(e) {}
+
+        let currentUser = null;
+        try { currentUser = JSON.parse(sessionStorage.getItem('rskd_user')) || null; } catch(e) {}
+        
+        let currentBranch = localStorage.getItem('rskd_active_branch') || (savedBranches.length > 0 ? savedBranches[0] : "");
+        let selectedRoomId = null;
+        let currentPhotoBase64 = null;
+        let currentBranchPhotoBase64 = null;
+
+        savedBranches.forEach(branch => {
+            if (!allBranchData[branch]) initBranchData(branch, 12, "", "", "");
+        });
+
+        function saveData() {
+            localStorage.setItem('rskd_branches', JSON.stringify(savedBranches));
+            localStorage.setItem('rskd_multi_branch_data', JSON.stringify(allBranchData));
+            localStorage.setItem('rskd_admin_creds', JSON.stringify(adminCreds));
+            localStorage.setItem('rskd_active_branch', currentBranch);
+            
+            renderBranchNav();
+            renderRooms();
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const errBox = document.getElementById('login-error-msg');
+            errBox.classList.add('hidden');
+            
+            try {
+                const rawUser = document.getElementById('login-user').value.trim();
+                const pass = document.getElementById('login-pass').value;
+
+                if (rawUser === 'admin' && pass === 'admin') {
+                    currentUser = { role: 'admin', name: 'Super Admin Pusat' };
+                } 
+                else if (adminCreds && adminCreds.username && rawUser.toLowerCase() === adminCreds.username.toLowerCase() && pass === adminCreds.password) {
+                    currentUser = { role: 'admin', name: 'Super Admin Pusat' };
+                } 
+                else {
+                    let matchedBranch = null;
+                    for (let branch of savedBranches) {
+                        let info = allBranchData[branch]?.info || {};
+                        let branchUser = info.username || branch.toLowerCase().replace(/\s/g, '');
+                        let branchPass = info.password || '123';
+                        
+                        if (rawUser.toLowerCase() === branchUser.toLowerCase() && pass === branchPass) {
+                            matchedBranch = branch;
+                            break;
+                        }
+                    }
+                    
+                    if(matchedBranch) {
+                        currentUser = { role: 'cabang', name: `Admin ${matchedBranch}`, branch: matchedBranch };
+                        currentBranch = matchedBranch;
+                        localStorage.setItem('rskd_active_branch', currentBranch);
+                    } else {
+                        errBox.innerText = "Username atau password salah! Silakan coba lagi.";
+                        errBox.classList.remove('hidden');
+                        return false;
+                    }
+                }
+
+                try { sessionStorage.setItem('rskd_user', JSON.stringify(currentUser)); } catch (e) {}
+                
+                document.getElementById('login-form').reset();
+                if (checkAuth()) {
+                    renderBranchNav();
+                    renderRooms();
+                }
+            } catch (error) {
+                errBox.innerText = "Terjadi kesalahan sistem saat memproses login.";
+                errBox.classList.remove('hidden');
+            }
+            return false;
+        }
+
+        function logout() {
+            try { sessionStorage.removeItem('rskd_user'); } catch(e) {}
+            currentUser = null;
+            checkAuth();
+        }
+
+        function checkAuth() {
+            if (!currentUser) {
+                document.getElementById('login-overlay').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+                return false;
+            }
+            
+            document.getElementById('login-overlay').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            
+            const roleContainer = document.getElementById('role-badge-container');
+            if (currentUser.role === 'admin') {
+                roleContainer.innerHTML = `
+                    <button onclick="openAdminSettings()" class="bg-red-600 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider hover:bg-red-700 transition flex items-center gap-1 shadow-sm"><i class="fa-solid fa-gear"></i> PUSAT</button>
+                    <span class="text-xs font-bold text-slate-500">${currentUser.name}</span>
+                `;
+            } else {
+                roleContainer.innerHTML = `
+                    <span class="bg-slate-800 text-white text-[10px] font-black px-2 py-1 rounded uppercase tracking-wider shadow-sm"><i class="fa-solid fa-building"></i> CABANG</span>
+                    <span class="text-xs font-bold text-slate-500">${currentUser.name}</span>
+                `;
+                
+                document.getElementById('btn-clear-history').classList.add('hidden');
+                document.querySelectorAll('.admin-only-col').forEach(el => el.classList.add('hidden'));
+                
+                currentBranch = currentUser.branch; 
+            }
+            
+            if (currentUser.role === 'admin' && savedBranches.length > 0 && !savedBranches.includes(currentBranch)) {
+                currentBranch = savedBranches[0];
+            }
+            return true;
+        }
+
+        function initBranchData(branchName, initialRooms, alamat, pj, telp, awal="", akhir="", username="", password="") {
+            allBranchData[branchName] = {
+                info: { 
+                    alamat, pj, telp, awalKontrak: awal, akhirKontrak: akhir,
+                    username: username || branchName.toLowerCase().replace(/\s/g, ''),
+                    password: password || '123'
+                },
+                rooms: Array.from({length: parseInt(initialRooms)}, (_, i) => createEmptyRoom(i + 1)),
+                history: [],
+                nextRoomId: parseInt(initialRooms) + 1
+            };
+        }
+
+        function createEmptyRoom(id) {
+            return { id: id, no: `Kamar ${id < 10 ? '0' + id : id}`, penghuni: null, foto: null, nik: "", asal: "", tglMasuk: "", diagnosa: "", dokter: "", telp: "", rs: "" };
+        }
+
+        function renderBranchNav() {
+            const container = document.getElementById('branch-nav-container');
+            container.innerHTML = '';
+            
+            if (currentUser && currentUser.role === 'admin') {
+                const nav = document.createElement('div');
+                nav.className = 'flex overflow-x-auto pb-2 gap-2 items-center';
+                
+                savedBranches.forEach(branch => {
+                    const isActive = branch === currentBranch;
+                    const btnContainer = document.createElement('div');
+                    btnContainer.className = `flex items-center rounded-2xl transition border ${isActive ? 'bg-orange-600 border-orange-600 shadow-md shadow-orange-600/20' : 'bg-white border-slate-200 hover:bg-slate-50'}`;
+
+                    const btn = document.createElement('button');
+                    btn.onclick = () => { 
+                        currentBranch = branch; 
+                        localStorage.setItem('rskd_active_branch', currentBranch);
+                        document.getElementById('active-branch-label').innerText = branch; 
+                        renderBranchNav();
+                        renderRooms(); 
+                    };
+                    btn.className = `whitespace-nowrap pl-5 pr-2 py-3 font-black text-xs outline-none ${isActive ? 'text-white' : 'text-slate-500'}`;
+                    btn.innerText = branch;
+
+                    const delBtn = document.createElement('button');
+                    delBtn.onclick = (e) => { e.stopPropagation(); deleteBranch(branch); };
+                    delBtn.className = `px-4 py-3 text-xs transition-colors rounded-r-2xl outline-none ${isActive ? 'text-orange-200 hover:text-white hover:bg-orange-700' : 'text-slate-300 hover:text-red-500 hover:bg-red-50'}`;
+                    delBtn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+
+                    btnContainer.appendChild(btn);
+                    btnContainer.appendChild(delBtn);
+                    nav.appendChild(btnContainer);
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.onclick = () => { document.getElementById('add-location-modal').classList.replace('hidden', 'flex'); };
+                addBtn.className = `whitespace-nowrap px-5 py-3 rounded-2xl font-black text-xs transition border-2 border-dashed border-slate-300 text-slate-500 bg-white hover:bg-slate-50 hover:border-orange-500 hover:text-orange-600 flex items-center gap-2 ml-2`;
+                addBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Tambah Lokasi';
+                
+                const addRoomBtn = document.createElement('button');
+                addRoomBtn.onclick = () => { addRoom(); };
+                addRoomBtn.className = `whitespace-nowrap px-4 py-3 rounded-2xl font-black text-xs transition border border-indigo-200 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 flex items-center gap-2 ml-auto shadow-sm`;
+                addRoomBtn.innerHTML = '<i class="fa-solid fa-plus"></i> Kamar';
+
+                nav.appendChild(addBtn);
+                nav.appendChild(addRoomBtn);
+                container.appendChild(nav);
+
+                if(savedBranches.length > 0) document.getElementById('active-branch-label').innerText = currentBranch;
+                else document.getElementById('active-branch-label').innerText = "-";
+                
+            } else {
+                const branchInfo = allBranchData[currentBranch]?.info || {};
+                const alamatStr = branchInfo.alamat || "Alamat belum ditambahkan.";
+                
+                const banner = document.createElement('div');
+                banner.className = 'flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm';
+                banner.innerHTML = `
+                    <div class="flex items-start gap-3 text-slate-600 w-full">
+                        <div class="text-orange-500 mt-0.5"><i class="fa-solid fa-map-location-dot"></i></div>
+                        <p class="text-sm font-medium leading-relaxed">${alamatStr}</p>
+                    </div>
+                `;
+                container.appendChild(banner);
+                document.getElementById('active-branch-label').innerText = currentBranch;
+            }
+        }
+
+        function deleteBranch(branchName) {
+            const branchInfo = allBranchData[branchName];
+            const isOccupied = branchInfo.rooms.some(r => r.penghuni !== null);
+            let msg = `Anda yakin ingin menghapus lokasi cabang "${branchName}"?`;
+            if (isOccupied) msg = `PERINGATAN: Masih ada kamar yang terisi di cabang "${branchName}"!`;
+
+            showConfirm("Hapus Lokasi", msg, () => {
+                savedBranches = savedBranches.filter(b => b !== branchName);
+                delete allBranchData[branchName];
+                if (currentBranch === branchName) currentBranch = savedBranches.length > 0 ? savedBranches[0] : "";
+                saveData();
+            });
+        }
+
+        document.getElementById('add-location-form').onsubmit = (e) => {
+            e.preventDefault();
+            const nama = document.getElementById('loc-nama').value.trim();
+            const errBox = document.getElementById('add-loc-error');
+            
+            if (savedBranches.includes(nama)) {
+                errBox.innerText = `Cabang dengan nama "${nama}" sudah ada!`;
+                errBox.classList.remove('hidden');
+                return;
+            }
+            errBox.classList.add('hidden');
+            
+            savedBranches.push(nama);
+            initBranchData(
+                nama, document.getElementById('loc-kamar').value, document.getElementById('loc-alamat').value,
+                document.getElementById('loc-pj').value, document.getElementById('loc-telp').value,
+                document.getElementById('loc-awal').value, document.getElementById('loc-akhir').value,
+                document.getElementById('loc-username').value.trim(), document.getElementById('loc-password').value
+            );
+            
+            currentBranch = nama;
+            document.getElementById('add-location-form').reset();
+            closeModal('add-location-modal');
+            saveData();
+        };
+
+        function addRoom() {
+            if(!currentBranch || !allBranchData[currentBranch]) return showConfirm("Gagal", "Pilih lokasi cabang dulu.", null, true);
+            const branch = allBranchData[currentBranch];
+            branch.rooms.push(createEmptyRoom(branch.nextRoomId++));
+            saveData();
+        }
+
+        function deleteRoom(roomId) {
+            const room = allBranchData[currentBranch].rooms.find(r => r.id === roomId);
+            if(room.penghuni) return showConfirm("Gagal", "Kamar ini masih terisi.", null, true);
+            showConfirm("Hapus Kamar", `Hapus ${room.no}?`, () => {
+                allBranchData[currentBranch].rooms = allBranchData[currentBranch].rooms.filter(r => r.id !== roomId);
+                saveData();
+            });
+        }
+
+        function renderRooms() {
+            const grid = document.getElementById('room-grid');
+            grid.innerHTML = '';
+            
+            if(!currentBranch || !allBranchData[currentBranch] || !allBranchData[currentBranch].rooms) {
+                grid.innerHTML = '<div class="col-span-full py-16 text-center text-slate-400 font-medium">Belum ada lokasi aktif.</div>';
+                document.getElementById('total-terisi').innerText = '0';
+                document.getElementById('total-kamar').innerText = '/ 0';
+                return;
+            }
+
+            let terisiCount = 0;
+            const rooms = allBranchData[currentBranch].rooms;
+
+            rooms.forEach(room => {
+                const isTerisi = !!room.penghuni;
+                if (isTerisi) terisiCount++;
+
+                const card = document.createElement('div');
+                card.className = `room-card bg-white group relative`;
+                const deleteBtn = `
+                    <button onclick="event.stopPropagation(); deleteRoom(${room.id})" class="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/80 backdrop-blur flex items-center justify-center text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100">
+                        <i class="fa-solid fa-trash-can text-xs"></i>
+                    </button>`;
+
+                if (isTerisi) {
+                    let avatar = `<div class="w-24 h-24 rounded-full bg-orange-50 flex items-center justify-center text-orange-300 text-3xl font-black">${room.penghuni[0].toUpperCase()}</div>`;
+                    if (room.foto) {
+                        if (room.foto.startsWith('http')) {
+                            // Link resmi dari Google Drive, gunakan tag <a>
+                            avatar = `<a href="${room.foto}" target="_blank" onclick="event.stopPropagation()" title="Lihat Foto Original di Tab Baru"><img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md hover:scale-105 transition-transform"></a>`;
+                        } else {
+                            // Masih berwujud Base64 (sementara)
+                            avatar = `<img src="${room.foto}" class="w-24 h-24 rounded-full object-cover ring-2 ring-white shadow-md">`;
+                        }
+                    }
+
+                    card.innerHTML = `
+                        ${deleteBtn}
+                        <div class="photo-container bg-gradient-to-br from-orange-500 to-orange-700 p-4 flex-col gap-2 relative cursor-pointer" onclick="editRoom(${room.id})">
+                            <div class="absolute top-3 left-3 bg-white/20 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-white">${room.no}</div>
+                            ${avatar}
+                        </div>
+                        <div class="p-5 space-y-4">
+                            <div class="cursor-pointer" onclick="editRoom(${room.id})">
+                                <h3 class="font-black text-slate-800 line-clamp-1">${room.penghuni}</h3>
+                                <div class="flex items-center gap-1 text-[10px] text-orange-600 font-bold uppercase mt-1">
+                                    <i class="fa-solid fa-hospital text-[8px]"></i>
+                                    <span class="truncate">${room.rs || 'RS belum diisi'}</span>
+                                </div>
+                            </div>
+                            <div class="space-y-2 cursor-pointer" onclick="editRoom(${room.id})">
+                                <div class="flex justify-between items-center text-[10px]">
+                                    <span class="font-black text-slate-400 uppercase">Durasi</span>
+                                    <span class="font-bold text-slate-700 bg-orange-50 px-2 py-0.5 rounded text-orange-600">${formatDurasi(room.tglMasuk)}</span>
+                                </div>
+                            </div>
+                            <button onclick="processCheckout(${room.id})" class="w-full bg-slate-900 text-white py-2 rounded-xl text-xs font-bold hover:bg-red-600 transition-colors">Check-out</button>
+                        </div>
+                    `;
+                } else {
+                    card.innerHTML = `
+                        ${deleteBtn}
+                        <div class="p-8 flex flex-col items-center justify-center text-center space-y-4 h-full min-h-[280px]">
+                            <div class="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 mb-2">
+                                <i class="fa-solid fa-bed text-2xl"></i>
+                            </div>
+                            <div>
+                                <div class="text-xs font-black text-slate-400 uppercase">${room.no}</div>
+                                <div class="text-sm font-bold text-slate-300">Kosong</div>
+                            </div>
+                            <button onclick="openRegister(${room.id})" class="bg-slate-900 text-white px-6 py-3 rounded-xl text-sm font-black hover:bg-orange-600 transition-colors w-full flex justify-center items-center gap-2 mt-auto">
+                                <i class="fa-solid fa-plus"></i> Isi Kamar
+                            </button>
+                        </div>
+                    `;
+                }
+                grid.appendChild(card);
+            });
+
+            document.getElementById('total-terisi').innerText = terisiCount;
+            document.getElementById('total-kamar').innerText = `/ ${rooms.length}`;
+        }
+
+        function formatDurasi(tglMasuk, tglKeluar = null) {
+            if(!tglMasuk) return '-';
+            const start = new Date(tglMasuk);
+            const end = tglKeluar ? new Date(tglKeluar) : new Date();
+            const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays >= 30) {
+                return `${Math.floor(diffDays / 30)} Bln ${diffDays % 30} Hari`;
+            }
+            return `${diffDays} Hari`;
+        }
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 500; 
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height && width > MAX_SIZE) {
+                            height *= MAX_SIZE / width;
+                            width = MAX_SIZE;
+                        } else if (height > MAX_SIZE) {
+                            width *= MAX_SIZE / height;
+                            height = MAX_SIZE;
+                        }
+                        
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
+                        document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
+                    }
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function openRegister(id) {
+            selectedRoomId = id;
+            currentPhotoBase64 = null;
+            document.getElementById('register-form').reset();
+            document.getElementById('photo-preview-container').innerHTML = `<div class="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-3xl"></i></div>`;
+            document.getElementById('reg-tglMasuk').valueAsDate = new Date();
+            document.getElementById('branch-form-info').innerText = `Cabang: ${currentBranch} | Tambah Penghuni`;
+            document.getElementById('register-modal').classList.replace('hidden', 'flex');
+        }
+
+        function editRoom(id) {
+            const room = allBranchData[currentBranch].rooms.find(r => r.id === id);
+            selectedRoomId = id;
+            currentPhotoBase64 = room.foto;
+            
+            document.getElementById('reg-nama').value = room.penghuni || "";
+            document.getElementById('reg-nik').value = room.nik || "";
+            document.getElementById('reg-telp').value = room.telp || "";
+            document.getElementById('reg-asal').value = room.asal || "";
+            document.getElementById('reg-tglMasuk').value = room.tglMasuk || "";
+            document.getElementById('reg-diagnosa').value = room.diagnosa || "";
+            document.getElementById('reg-dokter').value = room.dokter || "";
+            document.getElementById('reg-rs').value = room.rs || "";
+            
+            if (room.foto) {
+                document.getElementById('photo-preview-container').innerHTML = `<img src="${room.foto}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
+            } else {
+                document.getElementById('photo-preview-container').innerHTML = `<div class="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-3xl"></i></div>`;
+            }
+            
+            document.getElementById('branch-form-info').innerText = `Cabang: ${currentBranch} | Edit Penghuni`;
+            document.getElementById('register-modal').classList.replace('hidden', 'flex');
+        }
+
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBiwfg7G-kFzhrWQZnz0ld244GqiY3DDdBYAna-YevxvNTxCRLWqPofkfQ4AA9l8fY7A/exec';
+
+        document.getElementById('register-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+            submitBtn.disabled = true;
+
+            const idx = allBranchData[currentBranch].rooms.findIndex(r => r.id === selectedRoomId);
+            const newData = {
+                penghuni: document.getElementById('reg-nama').value,
+                nik: document.getElementById('reg-nik').value,
+                telp: document.getElementById('reg-telp').value,
+                asal: document.getElementById('reg-asal').value,
+                tglMasuk: document.getElementById('reg-tglMasuk').value,
+                diagnosa: document.getElementById('reg-diagnosa').value,
+                dokter: document.getElementById('reg-dokter').value,
+                rs: document.getElementById('reg-rs').value,
+            };
+
+            let finalPhotoUrl = currentPhotoBase64;
+
+            if (APPS_SCRIPT_URL) {
+                try {
+                    const payload = new URLSearchParams({ 
+                        type: 'checkin', 
+                        cabang: currentBranch, 
+                        kamar: allBranchData[currentBranch].rooms[idx].no, 
+                        ...newData, 
+                        foto: currentPhotoBase64 || "" 
+                    });
+                    
+                    const response = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload });
+                    const textResponse = await response.text();
+                    try {
+                        const result = JSON.parse(textResponse);
+                        if (result.status === 'success' && result.url) {
+                            finalPhotoUrl = result.url; // Gunakan link Google Drive
+                        }
+                    } catch (e) {
+                        console.error("Gagal parse respon Apps Script:", e);
+                    }
+                } catch (error) {
+                    console.error("Gagal fetch ke Apps Script:", error);
+                }
+            }
+
+            allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl };
+            saveData();
+            closeModal('register-modal');
+            
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        };
+
+        function processCheckout(id) {
+            const roomIdx = allBranchData[currentBranch].rooms.findIndex(r => r.id === id);
+            const room = allBranchData[currentBranch].rooms[roomIdx];
+            
+            showConfirm("Check-out Pasien", `Check-out untuk ${room.penghuni} dari ${room.no}?`, async () => {
+                const tglKeluar = new Date().toISOString().split('T')[0];
+                const durasi = formatDurasi(room.tglMasuk, tglKeluar);
+                
+                if (APPS_SCRIPT_URL) {
+                    try {
+                        const payload = new URLSearchParams({ type: 'checkout', cabang: currentBranch, kamar: room.no, penghuni: room.penghuni, tglKeluar: tglKeluar, durasi: durasi });
+                        // Untuk checkout kita tidak perlu membaca URL Drive, jadi kita bisa abaikan responnya
+                        fetch(APPS_SCRIPT_URL, { method: 'POST', body: payload }).catch(e => console.log(e));
+                    } catch (error) {}
+                }
+
+                allBranchData[currentBranch].history.push({ ...room, tglKeluar: tglKeluar, durasi: durasi });
+                allBranchData[currentBranch].rooms[roomIdx] = createEmptyRoom(room.id);
+                allBranchData[currentBranch].rooms[roomIdx].no = room.no; 
+                saveData();
+            });
+        }
+
+        function openHistory() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+            const historyData = allBranchData[currentBranch]?.history || [];
+
+            if(historyData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-10 text-center text-slate-400 font-medium">Belum ada riwayat check-out di cabang ini.</td></tr>`;
+            } else {
+                historyData.forEach((data, index) => {
+                    const row = document.createElement('tr');
+                    let deleteBtnHtml = (currentUser && currentUser.role === 'admin') ? `<td class="px-6 py-4 text-center admin-only-col"><button onclick="deleteHistoryItem(${index})" class="text-slate-300 hover:text-red-600 transition-colors"><i class="fa-solid fa-trash-can"></i></button></td>` : '';
+
+                    row.innerHTML = `
+                        <td class="px-6 py-4"><span class="bg-slate-100 px-2 py-1 rounded text-[10px] font-black">${data.no}</span></td>
+                        <td class="px-6 py-4">${data.foto ? `<img src="${data.foto}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user"></i></div>`}</td>
+                        <td class="px-6 py-4"><div class="font-bold text-slate-800">${data.penghuni}</div><div class="text-[10px] text-slate-400">NIK: ${data.nik || '-'}</div></td>
+                        <td class="px-6 py-4"><div class="text-xs font-medium">${data.diagnosa || '-'}</div><div class="text-[10px] text-orange-500 font-bold uppercase mt-0.5">${data.rs || '-'}</div></td>
+                        <td class="px-6 py-4 text-[10px]"><div class="flex gap-2"><span class="text-slate-400 w-6">In:</span> <span class="font-medium text-slate-700">${data.tglMasuk}</span></div><div class="flex gap-2"><span class="text-slate-400 w-6">Out:</span> <span class="font-medium text-slate-700">${data.tglKeluar}</span></div><div class="font-black text-orange-600 mt-1">${data.durasi}</div></td>
+                        ${deleteBtnHtml}
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            document.getElementById('history-modal').classList.replace('hidden', 'flex');
+        }
+
+        function deleteHistoryItem(index) { showConfirm("Hapus", "Yakin ingin menghapus riwayat ini?", () => { allBranchData[currentBranch].history.splice(index, 1); saveData(); openHistory(); }); }
+        function clearHistory() { showConfirm("Hapus Semua", `Hapus seluruh riwayat cabang ${currentBranch}?`, () => { allBranchData[currentBranch].history = []; saveData(); openHistory(); }); }
+
+        function exportHistoryExcel() {
+            const historyData = allBranchData[currentBranch]?.history || [];
+            if (historyData.length === 0) return showConfirm("Data Kosong", "Tidak ada riwayat.", null, true);
+            let csv = "Nomor Kamar,Nama Pasien,NIK,Asal Kota,Rumah Sakit,Diagnosa,Tgl Masuk,Tgl Keluar,Durasi\n";
+            historyData.forEach(i => csv += `${i.no},${(i.penghuni||'').replace(/,/g, '')},'${i.nik},${(i.asal||'').replace(/,/g, '')},${(i.rs||'').replace(/,/g, '')},${(i.diagnosa||'').replace(/,/g, '')},${i.tglMasuk},${i.tglKeluar},${i.durasi}\n`);
+            const a = document.createElement('a');
+            a.href = window.URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+            a.download = `Riwayat_Rumsing_${currentBranch}.csv`;
+            a.click();
+        }
+
+        function showConfirm(title, message, onConfirm, isAlertOnly = false) {
+            document.getElementById('confirm-title').innerText = title;
+            document.getElementById('confirm-message').innerText = message;
+            const btn = document.getElementById('confirm-action-btn');
+            if (isAlertOnly) { btn.style.display = 'none'; document.querySelector('#confirm-modal button:first-child').innerText = 'Tutup'; } 
+            else { btn.style.display = 'block'; document.querySelector('#confirm-modal button:first-child').innerText = 'Batal'; btn.onclick = () => { onConfirm(); closeModal('confirm-modal'); }; }
+            document.getElementById('confirm-modal').classList.replace('hidden', 'flex');
+        }
+
+        function closeModal(id) { document.getElementById(id).classList.replace('flex', 'hidden'); }
+
+        function togglePassword(inputId, iconId) {
+            const input = document.getElementById(inputId), icon = document.getElementById(iconId);
+            if (input.type === 'password') { input.type = 'text'; icon.classList.replace('fa-eye', 'fa-eye-slash'); } 
+            else { input.type = 'password'; icon.classList.replace('fa-eye-slash', 'fa-eye'); }
+        }
+
+        function openBranchProfile() {
+            const info = allBranchData[currentBranch]?.info || {};
+            document.getElementById('profile-foto').src = info.foto || 'https://placehold.co/600x400/f1f5f9/94a3b8?text=Foto+Rumah+Singgah';
+            document.getElementById('profile-kota').innerText = currentBranch;
+            document.getElementById('profile-alamat').innerText = info.alamat || '-';
+            document.getElementById('profile-kamar').innerText = allBranchData[currentBranch].rooms.length + ' Kamar';
+            document.getElementById('profile-pj').innerText = info.pj || '-';
+            document.getElementById('profile-cp').innerText = info.telp || '-';
+            const mapLink = document.getElementById('profile-map');
+            if(info.linkMap) { mapLink.href = info.linkMap; mapLink.classList.remove('hidden'); } else { mapLink.classList.add('hidden'); }
+            document.getElementById('profile-awal').innerText = info.awalKontrak || '-';
+            document.getElementById('profile-akhir').innerText = info.akhirKontrak || '-';
+            document.getElementById('branch-profile-modal').classList.replace('hidden', 'flex');
+        }
+
+        function openEditBranchProfile() {
+            closeModal('branch-profile-modal');
+            const info = allBranchData[currentBranch].info || {};
+            currentBranchPhotoBase64 = info.foto || null;
+            document.getElementById('edit-branch-foto-preview').innerHTML = currentBranchPhotoBase64 ? `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">` : `<div class="flex flex-col items-center justify-center h-full text-slate-400"><i class="fa-solid fa-image text-3xl mb-2"></i><span class="text-[10px] font-black uppercase">Belum Ada Foto</span></div>`;
+            document.getElementById('edit-branch-alamat').value = info.alamat || '';
+            document.getElementById('edit-branch-pj').value = info.pj || '';
+            document.getElementById('edit-branch-telp').value = info.telp || '';
+            document.getElementById('edit-branch-map').value = info.linkMap || '';
+            document.getElementById('edit-branch-awal').value = info.awalKontrak || '';
+            document.getElementById('edit-branch-akhir').value = info.akhirKontrak || '';
+            
+            if (currentUser && currentUser.role === 'admin') {
+                document.getElementById('admin-credentials-section').classList.remove('hidden');
+                document.getElementById('edit-branch-username').value = info.username || currentBranch.toLowerCase().replace(/\s/g, '');
+                document.getElementById('edit-branch-password').value = info.password || '123';
+            } else { document.getElementById('admin-credentials-section').classList.add('hidden'); }
+            document.getElementById('edit-branch-modal').classList.replace('hidden', 'flex');
+        }
+
+        function previewBranchImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const canvas = document.createElement('canvas');
+                        const MAX_SIZE = 500;
+                        let width = img.width;
+                        let height = img.height;
+                        if (width > height && width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; }
+                        else if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; }
+                        canvas.width = width; canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        
+                        currentBranchPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
+                        document.getElementById('edit-branch-foto-preview').innerHTML = `<img src="${currentBranchPhotoBase64}" class="w-full h-full object-cover">`;
+                    }
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
+        document.getElementById('edit-branch-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
+            submitBtn.disabled = true;
+
+            const info = allBranchData[currentBranch].info || {};
+            info.alamat = document.getElementById('edit-branch-alamat').value;
+            info.pj = document.getElementById('edit-branch-pj').value;
+            info.telp = document.getElementById('edit-branch-telp').value;
+            info.linkMap = document.getElementById('edit-branch-map').value;
+            info.awalKontrak = document.getElementById('edit-branch-awal').value;
+            info.akhirKontrak = document.getElementById('edit-branch-akhir').value;
+            info.foto = currentBranchPhotoBase64;
+            
+            if (currentUser && currentUser.role === 'admin') {
+                info.username = document.getElementById('edit-branch-username').value.trim();
+                info.password = document.getElementById('edit-branch-password').value;
+            }
+            saveData(); 
+            closeModal('edit-branch-modal'); 
+            openBranchProfile(); 
+
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        };
+
+        function openAdminSettings() {
+            if (currentUser && currentUser.role === 'admin') {
+                document.getElementById('admin-username-input').value = adminCreds.username;
+                document.getElementById('admin-password-input').value = adminCreds.password;
+                document.getElementById('admin-settings-modal').classList.replace('hidden', 'flex');
+            }
+        }
+
+        document.getElementById('admin-settings-form').onsubmit = (e) => {
+            e.preventDefault();
+            adminCreds = { username: document.getElementById('admin-username-input').value.trim(), password: document.getElementById('admin-password-input').value };
+            saveData(); closeModal('admin-settings-modal');
+            showConfirm("Berhasil", "Username & Password Pusat telah diubah.", null, true);
+        };
+
+        if (checkAuth()) { renderBranchNav(); renderRooms(); }
+    </script>
+</body>
+</html>
