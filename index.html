@@ -37,7 +37,7 @@
                     <i class="fa-solid fa-house-chimney-medical"></i>
                 </div>
                 <h2 class="text-2xl font-black text-slate-800">Masuk Portal</h2>
-                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Monitoring Rumah Singgah</p>
+                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Monitoring Rumah Singgah V.21.6.2026.1</p>
             </div>
             
             <form id="login-form" class="space-y-5" onsubmit="return handleLogin(event)">
@@ -85,11 +85,20 @@
             </div>
         </div>
 
+        <!-- Tombol LOKASI (Cabang) -->
         <div class="mb-6" id="branch-nav-container"></div>
 
-        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 flex flex-col md:flex-row justify-start md:justify-end">
-            <div class="flex flex-wrap items-center justify-start md:justify-end gap-3 w-full">
-                <div class="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 flex items-center gap-3">
+        <!-- Menu Statistik Terisi, Waiting List, Riwayat -->
+        <div class="bg-white p-4 md:p-5 rounded-2xl shadow-sm border border-slate-200 mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            
+            <!-- Tombol Waiting List (Di Kiri) -->
+            <button onclick="openWaitingList()" class="w-full md:w-auto bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 font-bold py-3 md:py-2.5 px-5 rounded-xl flex items-center justify-center gap-3 transition shadow-sm text-sm order-2 md:order-1 relative">
+                <i class="fa-solid fa-clipboard-list"></i> Waiting List
+                <span id="waiting-count-badge" class="bg-red-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full absolute -top-2 -right-2 shadow-md border-2 border-white">0</span>
+            </button>
+
+            <div class="flex flex-wrap items-center justify-end gap-3 w-full md:w-auto order-1 md:order-2">
+                <div class="bg-slate-50 py-2 px-4 rounded-xl border border-slate-100 flex items-center gap-3 flex-1 md:flex-none">
                     <div class="bg-orange-100 p-2 rounded-lg text-orange-600">
                         <i class="fa-solid fa-bed"></i>
                     </div>
@@ -101,7 +110,7 @@
                         </div>
                     </div>
                 </div>
-                <button onclick="openHistory()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-2.5 px-5 rounded-xl flex items-center gap-2 transition shadow-sm text-sm">
+                <button onclick="openHistory()" class="flex-1 md:flex-none bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 font-bold py-2.5 px-5 rounded-xl flex items-center justify-center gap-2 transition shadow-sm text-sm">
                     <i class="fa-solid fa-history text-orange-500"></i> Riwayat
                 </button>
             </div>
@@ -322,6 +331,44 @@
         </div>
     </div>
 
+    <!-- Modal Waiting List -->
+    <div id="waiting-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div class="bg-white rounded-[32px] max-w-4xl w-full p-8 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                <div>
+                    <h2 class="text-2xl font-black text-slate-800">Daftar Antrean (Waiting List)</h2>
+                    <p class="text-xs text-blue-500 font-bold uppercase">Cabang: <span id="waiting-branch-name"></span></p>
+                </div>
+                <button onclick="closeModal('waiting-modal')" class="bg-slate-100 hover:bg-slate-200 p-2.5 rounded-full transition"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <!-- Form Tambah Antrean -->
+            <form id="waiting-form" onsubmit="addWaitingList(event)" class="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-6 flex flex-col md:flex-row gap-3">
+                <input type="text" id="wait-nama" required placeholder="Nama Lengkap" class="flex-1 bg-white border-blue-200 text-sm">
+                <input type="text" id="wait-asal" required placeholder="Asal Kota" class="flex-1 bg-white border-blue-200 text-sm">
+                <input type="tel" id="wait-telp" required placeholder="No. Telpon" class="flex-1 bg-white border-blue-200 text-sm">
+                <button type="submit" class="bg-blue-600 text-white font-bold py-3 px-6 rounded-xl hover:bg-blue-700 transition-colors shadow-md whitespace-nowrap">
+                    <i class="fa-solid fa-plus mr-1"></i> Tambah
+                </button>
+            </form>
+
+            <div class="flex-1 overflow-auto rounded-2xl border border-slate-100">
+                <table class="w-full text-sm text-left border-collapse">
+                    <thead class="bg-slate-50 sticky top-0 z-10">
+                        <tr>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500 w-16">No</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Nama Lengkap</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">Asal Kota</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500">No. Telpon</th>
+                            <th class="px-6 py-4 text-[10px] font-black uppercase text-slate-500 text-center w-24">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="waiting-table-body" class="divide-y divide-slate-50 bg-white"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Profil Cabang -->
     <div id="branch-profile-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[55] backdrop-blur-sm">
         <div class="bg-white rounded-[32px] max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -499,10 +546,8 @@
         <div class="relative w-full max-w-md bg-black rounded-2xl overflow-hidden aspect-[3/4] flex items-center justify-center shadow-2xl border border-slate-700">
             <video id="ktp-video" autoplay playsinline class="absolute inset-0 w-full h-full object-cover"></video>
             
-            <!-- Overlay Bingkai KTP dengan Teknik Masking CSS -->
             <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
                 <div class="w-[90%] aspect-[85/54] border-2 border-orange-500 rounded-xl relative shadow-[0_0_0_9999px_rgba(0,0,0,0.6)]">
-                    <!-- Icon Orang di sebelah kanan -->
                     <div class="absolute right-4 top-1/2 -translate-y-1/2 text-orange-500/70 flex flex-col items-center">
                         <i class="fa-solid fa-user text-5xl"></i>
                     </div>
@@ -519,17 +564,42 @@
         <canvas id="ktp-canvas" class="hidden"></canvas>
     </div>
 
-    <!-- Modal Confirm Universal -->
+    <!-- Modal Konfirmasi Universal (Termasuk Pesan Donasi Check-Out) -->
     <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 hidden items-center justify-center p-4 z-[80] backdrop-blur-sm">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl text-center">
-            <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                <i class="fa-solid fa-triangle-exclamation"></i>
+        <!-- Max-width kita besarkan agar cukup untuk pesan Donasi -->
+        <div class="bg-white rounded-[32px] max-w-md w-full p-6 md:p-8 shadow-2xl text-center relative overflow-hidden">
+            
+            <div id="confirm-icon-box" class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                <i id="confirm-icon" class="fa-solid fa-triangle-exclamation"></i>
             </div>
-            <h3 id="confirm-title" class="text-xl font-black text-slate-800 mb-2">Konfirmasi</h3>
-            <p id="confirm-message" class="text-sm text-slate-500 mb-6">Apakah Anda yakin?</p>
-            <div class="flex gap-3">
-                <button onclick="closeModal('confirm-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3 rounded-xl hover:bg-slate-200 transition">Batal</button>
-                <button id="confirm-action-btn" class="flex-1 bg-red-600 text-white font-bold py-3 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-600/30">Ya, Lanjutkan</button>
+            
+            <h3 id="confirm-title" class="text-2xl font-black text-slate-800 mb-2">Konfirmasi</h3>
+            
+            <!-- Area Teks Utama -->
+            <p id="confirm-message" class="text-sm text-slate-600 mb-4 leading-relaxed font-medium">Apakah Anda yakin?</p>
+            
+            <!-- Box Khusus Donasi Check-Out (Awalnya Sembunyi) -->
+            <div id="checkout-donation-box" class="hidden mb-6 text-left bg-orange-50 rounded-2xl p-4 border border-orange-100 shadow-inner">
+                <p class="text-xs text-slate-600 mb-3 font-semibold leading-relaxed">
+                    Periksa kembali barang bawaan anda, pastikan tidak ada barang milik pasien yang tertinggal di dalam kamar.
+                </p>
+                <div class="flex flex-col sm:flex-row items-center gap-4 bg-white p-3 rounded-xl border border-orange-200">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=http://rumahzakat.org/donasi/rskd-sedekah-rumah-singgah?source=1022026001800" alt="QR Donasi" class="w-20 h-20 rounded-lg shadow-sm">
+                    <div class="flex-1 text-center sm:text-left">
+                        <p class="text-[10px] font-black text-orange-600 uppercase mb-1 tracking-wider">Sedekah Rumah Singgah</p>
+                        <p class="text-[10px] text-slate-500 mb-2 leading-tight">Kami mengajak Anda berpartisipasi dengan scan barcode ini.</p>
+                        <a href="http://rumahzakat.org/donasi/rskd-sedekah-rumah-singgah?source=1022026001800" target="_blank" class="inline-block bg-orange-500 text-white text-[9px] font-bold px-3 py-1.5 rounded-lg hover:bg-orange-600 transition shadow-sm">Atau Klik Disini</a>
+                    </div>
+                </div>
+                <div class="mt-3 text-center italic text-[10px] text-slate-500 px-2 font-medium">
+                    "Semoga Allah memberikan kesembuhan yang sempurna kepadamu, dan semoga apa yang telah disedekahkan menjadi pahala jariyah dan menambah keberkahan. Aamiin."
+                </div>
+            </div>
+
+            <!-- Tombol Aksi -->
+            <div class="flex gap-3 mt-4">
+                <button onclick="closeModal('confirm-modal')" class="flex-1 bg-slate-100 text-slate-600 font-bold py-3.5 rounded-xl hover:bg-slate-200 transition">Batal</button>
+                <button id="confirm-action-btn" class="flex-1 bg-red-600 text-white font-bold py-3.5 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-600/30">Ya, Lanjutkan</button>
             </div>
         </div>
     </div>
@@ -660,6 +730,7 @@
                                 if (!savedBranches.includes(currentBranch)) currentBranch = savedBranches[0] || "";
                                 renderBranchNav();
                                 renderRooms();
+                                renderWaitingListBadge();
                             }
                         } catch(e) {}
                     }
@@ -895,6 +966,7 @@
                 },
                 rooms: Array.from({length: parseInt(initialRooms)}, (_, i) => createEmptyRoom(i + 1)),
                 history: [],
+                waitingList: [], // Inisialisasi Waiting List
                 nextRoomId: parseInt(initialRooms) + 1
             };
         }
@@ -923,6 +995,7 @@
                         document.getElementById('active-branch-label').innerText = branch; 
                         renderBranchNav();
                         renderRooms(); 
+                        renderWaitingListBadge();
                     };
                     btn.className = `whitespace-nowrap pl-5 pr-2 py-3 font-black text-xs outline-none ${isActive ? 'text-white' : 'text-slate-500'}`;
                     btn.innerText = branch;
@@ -1062,7 +1135,6 @@
                         }
                     }
 
-                    // Tampilkan indikator jika KTP dilampirkan
                     const ktpBadge = room.ktpFoto ? `<div class="absolute top-3 right-3 bg-emerald-500/90 backdrop-blur text-white px-2 py-1 rounded text-[8px] font-black shadow-sm flex items-center gap-1"><i class="fa-solid fa-id-card"></i> KTP</div>` : '';
 
                     card.innerHTML = `
@@ -1111,6 +1183,76 @@
 
             document.getElementById('total-terisi').innerText = terisiCount;
             document.getElementById('total-kamar').innerText = `/ ${rooms.length}`;
+            renderWaitingListBadge(); 
+        }
+
+        // =========================================================
+        // WAITING LIST LOGIC
+        // =========================================================
+        function renderWaitingListBadge() {
+            if(!currentBranch || !allBranchData[currentBranch]) return;
+            const wl = allBranchData[currentBranch].waitingList || [];
+            const badge = document.getElementById('waiting-count-badge');
+            if(badge) badge.innerText = wl.length;
+        }
+
+        function openWaitingList() {
+            document.getElementById('waiting-branch-name').innerText = currentBranch;
+            renderWaitingListTable();
+            document.getElementById('waiting-modal').classList.replace('hidden', 'flex');
+        }
+
+        function renderWaitingListTable() {
+            const tbody = document.getElementById('waiting-table-body');
+            tbody.innerHTML = '';
+            if (!allBranchData[currentBranch].waitingList) allBranchData[currentBranch].waitingList = [];
+            const wl = allBranchData[currentBranch].waitingList;
+
+            if (wl.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="px-6 py-10 text-center text-slate-400 font-medium">Belum ada daftar antrean di cabang ini.</td></tr>`;
+            } else {
+                wl.forEach((data, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-6 py-4 font-black text-slate-400">${index + 1}</td>
+                        <td class="px-6 py-4 font-bold text-slate-800">${data.nama}</td>
+                        <td class="px-6 py-4 text-slate-600">${data.asal}</td>
+                        <td class="px-6 py-4 font-medium text-slate-600">${data.telp}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button onclick="deleteWaitingItem(${index})" class="text-slate-300 hover:text-red-600 transition-colors bg-slate-50 hover:bg-red-50 p-2 rounded-lg" title="Hapus dari antrean">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
+            renderWaitingListBadge();
+        }
+
+        function addWaitingList(e) {
+            e.preventDefault();
+            if (!allBranchData[currentBranch].waitingList) allBranchData[currentBranch].waitingList = [];
+            
+            const newData = {
+                nama: document.getElementById('wait-nama').value.trim(),
+                asal: document.getElementById('wait-asal').value.trim(),
+                telp: document.getElementById('wait-telp').value.trim(),
+                timestamp: new Date().toISOString()
+            };
+            
+            allBranchData[currentBranch].waitingList.push(newData);
+            saveData(); 
+            e.target.reset();
+            renderWaitingListTable();
+        }
+
+        function deleteWaitingItem(index) {
+            showConfirm("Hapus Antrean", "Yakin ingin menghapus pasien ini dari Waiting List?", () => { 
+                allBranchData[currentBranch].waitingList.splice(index, 1); 
+                saveData(); 
+                renderWaitingListTable(); 
+            }, false, 'delete');
         }
 
         function formatDurasi(tglMasuk, tglKeluar = null) {
@@ -1125,39 +1267,6 @@
             return `${diffDays} Hari`;
         }
 
-        function previewImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        const canvas = document.createElement('canvas');
-                        const MAX_SIZE = 500; 
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height && width > MAX_SIZE) {
-                            height *= MAX_SIZE / width;
-                            width = MAX_SIZE;
-                        } else if (height > MAX_SIZE) {
-                            width *= MAX_SIZE / height;
-                            height = MAX_SIZE;
-                        }
-                        
-                        canvas.width = width;
-                        canvas.height = height;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        
-                        currentPhotoBase64 = canvas.toDataURL('image/jpeg', 0.5);
-                        document.getElementById('photo-preview-container').innerHTML = `<img src="${currentPhotoBase64}" class="w-20 h-20 rounded-full object-cover border-2 border-orange-500">`;
-                    }
-                    img.src = e.target.result;
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
         function openRegister(id) {
             selectedRoomId = id;
             currentPhotoBase64 = null;
@@ -1165,7 +1274,7 @@
             document.getElementById('photo-preview-container').innerHTML = `<div class="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-400"><i class="fa-solid fa-user text-3xl"></i></div>`;
             document.getElementById('reg-tglMasuk').valueAsDate = new Date();
             document.getElementById('branch-form-info').innerText = `Cabang: ${currentBranch} | Tambah Penghuni`;
-            removeKtp(); // Reset KTP view
+            removeKtp(); 
             document.getElementById('register-modal').classList.replace('hidden', 'flex');
         }
 
@@ -1241,8 +1350,8 @@
                     try {
                         const result = JSON.parse(textResponse);
                         if (result.status === 'success') {
-                            if (result.url) finalPhotoUrl = result.url; // Tautan Google Drive Foto Profil
-                            if (result.ktpUrl) finalKtpUrl = result.ktpUrl; // Tautan Google Drive Foto KTP
+                            if (result.url) finalPhotoUrl = result.url; 
+                            if (result.ktpUrl) finalKtpUrl = result.ktpUrl; 
                         }
                     } catch (e) {
                         console.error("Gagal parse respon Apps Script:", e);
@@ -1252,7 +1361,6 @@
                 }
             }
 
-            // Simpan ke Dasbor Local lalu tembak ke Firebase Realtime
             allBranchData[currentBranch].rooms[idx] = { ...allBranchData[currentBranch].rooms[idx], ...newData, foto: finalPhotoUrl, ktpFoto: finalKtpUrl };
             saveData();
             
@@ -1266,27 +1374,7 @@
             const roomIdx = allBranchData[currentBranch].rooms.findIndex(r => r.id === id);
             const room = allBranchData[currentBranch].rooms[roomIdx];
             
-            const msgHtml = `
-                <div class="text-left text-xs text-slate-600 space-y-3 mt-2">
-                    <p class="text-sm text-center mb-4">Check-out <strong>${room.penghuni}</strong> dari <strong>${room.no}</strong>?</p>
-                    
-                    <div class="bg-orange-50 p-3 rounded-xl border border-orange-100">
-                        <p class="font-bold text-orange-800 mb-1"><i class="fa-solid fa-suitcase-rolling"></i> Perhatian Barang Bawaan</p>
-                        <p class="text-[11px]">Periksa kembali barang bawaan anda, pastikan tidak ada barang milik pasien yang tertinggal di dalam kamar.</p>
-                    </div>
-                    
-                    <div class="bg-blue-50 p-3 rounded-xl border border-blue-100 flex flex-col items-center text-center">
-                        <p class="mb-2 font-medium text-blue-800 leading-relaxed text-[11px]">Kami mengajak anda untuk berpartisipasi dalam gerakan sedekah Rumah Singgah dengan scan barcode berikut ini:</p>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=http://rumahzakat.org/donasi/rskd-sedekah-rumah-singgah?source=1022026001800" alt="QR Code Donasi" class="w-28 h-28 rounded shadow-sm mb-1 bg-white p-2 border border-slate-200">
-                    </div>
-                    
-                    <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100 text-center italic font-medium text-emerald-800 leading-relaxed text-[11px]">
-                        "Semoga Allah memberikan kesembuhan yang sempurna kepadamu, dan semoga apa yang telah disedekahkan menjadi pahala jariyah dan menambah keberkahan. Aamiin."
-                    </div>
-                </div>
-            `;
-            
-            showConfirm("Check-out Pasien", msgHtml, async () => {
+            showConfirm("Check-out Pasien", `Check-out untuk ${room.penghuni} dari ${room.no}?`, async () => {
                 const tglKeluar = new Date().toISOString().split('T')[0];
                 const durasi = formatDurasi(room.tglMasuk, tglKeluar);
                 
@@ -1301,7 +1389,7 @@
                 allBranchData[currentBranch].rooms[roomIdx] = createEmptyRoom(room.id);
                 allBranchData[currentBranch].rooms[roomIdx].no = room.no; 
                 saveData(); 
-            });
+            }, false, 'checkout'); 
         }
 
         function openHistory() {
@@ -1330,12 +1418,12 @@
             document.getElementById('history-modal').classList.replace('hidden', 'flex');
         }
 
-        function deleteHistoryItem(index) { showConfirm("Hapus", "Yakin ingin menghapus riwayat ini?", () => { allBranchData[currentBranch].history.splice(index, 1); saveData(); openHistory(); }); }
-        function clearHistory() { showConfirm("Hapus Semua", `Hapus seluruh riwayat cabang ${currentBranch}?`, () => { allBranchData[currentBranch].history = []; saveData(); openHistory(); }); }
+        function deleteHistoryItem(index) { showConfirm("Hapus", "Yakin ingin menghapus riwayat ini?", () => { allBranchData[currentBranch].history.splice(index, 1); saveData(); openHistory(); }, false, 'delete'); }
+        function clearHistory() { showConfirm("Hapus Semua", `Hapus seluruh riwayat cabang ${currentBranch}?`, () => { allBranchData[currentBranch].history = []; saveData(); openHistory(); }, false, 'delete'); }
 
         function exportHistoryExcel() {
             const historyData = allBranchData[currentBranch]?.history || [];
-            if (historyData.length === 0) return showConfirm("Data Kosong", "Tidak ada riwayat.", null, true);
+            if (historyData.length === 0) return showConfirm("Data Kosong", "Tidak ada riwayat.", null, true, 'info');
             let csv = "Nomor Kamar,Nama Pasien,NIK,Asal Kota,Rumah Sakit,Diagnosa,Tgl Masuk,Tgl Keluar,Durasi\n";
             historyData.forEach(i => csv += `${i.no},${(i.penghuni||'').replace(/,/g, '')},'${i.nik},${(i.asal||'').replace(/,/g, '')},${(i.rs||'').replace(/,/g, '')},${(i.diagnosa||'').replace(/,/g, '')},${i.tglMasuk},${i.tglKeluar},${i.durasi}\n`);
             const a = document.createElement('a');
@@ -1344,12 +1432,43 @@
             a.click();
         }
 
-        function showConfirm(title, message, onConfirm, isAlertOnly = false) {
+        function showConfirm(title, message, onConfirm, isAlertOnly = false, type = 'info') {
             document.getElementById('confirm-title').innerText = title;
-            document.getElementById('confirm-message').innerHTML = message; // Berubah jadi innerHTML agar bisa merender Barcode
+            document.getElementById('confirm-message').innerText = message;
+            
             const btn = document.getElementById('confirm-action-btn');
-            if (isAlertOnly) { btn.style.display = 'none'; document.querySelector('#confirm-modal button:first-child').innerText = 'Tutup'; } 
-            else { btn.style.display = 'block'; document.querySelector('#confirm-modal button:first-child').innerText = 'Batal'; btn.onclick = () => { onConfirm(); closeModal('confirm-modal'); }; }
+            const iconBox = document.getElementById('confirm-icon-box');
+            const icon = document.getElementById('confirm-icon');
+            const donationBox = document.getElementById('checkout-donation-box');
+            
+            donationBox.classList.add('hidden');
+            
+            if (type === 'checkout') {
+                iconBox.className = 'w-16 h-16 bg-blue-100 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl';
+                icon.className = 'fa-solid fa-person-walking-arrow-right';
+                btn.className = 'flex-1 bg-blue-600 text-white font-bold py-3.5 rounded-xl hover:bg-blue-700 transition shadow-lg shadow-blue-600/30';
+                btn.innerText = 'Check-out Sekarang';
+                donationBox.classList.remove('hidden');
+            } else if (type === 'delete') {
+                iconBox.className = 'w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl';
+                icon.className = 'fa-solid fa-trash-can';
+                btn.className = 'flex-1 bg-red-600 text-white font-bold py-3.5 rounded-xl hover:bg-red-700 transition shadow-lg shadow-red-600/30';
+                btn.innerText = 'Ya, Hapus';
+            } else {
+                iconBox.className = 'w-16 h-16 bg-orange-100 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl';
+                icon.className = 'fa-solid fa-circle-info';
+                btn.className = 'flex-1 bg-orange-600 text-white font-bold py-3.5 rounded-xl hover:bg-orange-700 transition shadow-lg shadow-orange-600/30';
+                btn.innerText = 'Lanjutkan';
+            }
+
+            if (isAlertOnly) { 
+                btn.style.display = 'none'; 
+                document.querySelector('#confirm-modal button:first-child').innerText = 'Tutup'; 
+            } else { 
+                btn.style.display = 'block'; 
+                document.querySelector('#confirm-modal button:first-child').innerText = 'Batal'; 
+                btn.onclick = () => { onConfirm(); closeModal('confirm-modal'); }; 
+            }
             document.getElementById('confirm-modal').classList.replace('hidden', 'flex');
         }
 
@@ -1461,7 +1580,7 @@
             e.preventDefault();
             adminCreds = { username: document.getElementById('admin-username-input').value.trim(), password: document.getElementById('admin-password-input').value };
             saveData(); closeModal('admin-settings-modal');
-            showConfirm("Berhasil", "Username & Password Pusat telah diubah.", null, true);
+            showConfirm("Berhasil", "Username & Password Pusat telah diubah.", null, true, 'info');
         };
 
         if (checkAuth()) { renderBranchNav(); renderRooms(); }
